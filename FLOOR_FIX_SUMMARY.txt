@@ -1,0 +1,57 @@
+========================================
+  FLOOR TEXTURE COLOR FIX - SUMMARY
+========================================
+
+PROBLEM:
+--------
+❌ Custom floor textures (tiles) appeared with brown/chocolate tint
+❌ White tiles looked beige/tan
+❌ Grey tiles looked dark brown
+❌ All colors were muddy and inaccurate
+
+CAUSE:
+------
+The floor material had a brown color (0xd4a870) that was being 
+MULTIPLIED with the uploaded texture, causing a brown tint.
+
+In Three.js: Final Color = Texture Color × Material Color
+
+SOLUTION:
+---------
+Changed floor material color from BROWN to WHITE (0xffffff)
+
+White × Any Color = Same Color (no tint!)
+
+CHANGES:
+--------
+1. Initial floor material: color: 0xffffff ✓
+2. Texture reset function: color: 0xffffff ✓  
+3. Custom upload handler: color: 0xffffff ✓
+
+FILE MODIFIED:
+--------------
+viewer/index.html (3 locations)
+
+RESULT:
+-------
+✅ Floor textures now show TRUE colors
+✅ White tiles are white (not beige)
+✅ Grey tiles are grey (not brown)
+✅ Colored tiles are vibrant and accurate
+✅ What you upload is what you see
+
+TESTING:
+--------
+1. Load floorplan → Floor is light (not brown) ✓
+2. Upload white tile → Appears white ✓
+3. Upload grey tile → Appears grey ✓
+4. Upload colored tile → True colors ✓
+
+QUICK FIX VERIFICATION:
+-----------------------
+Before: Upload white marble → See brown-tinted marble ❌
+After:  Upload white marble → See white marble ✅
+
+========================================
+  STATUS: ✅ FIXED!
+========================================

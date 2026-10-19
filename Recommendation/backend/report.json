@@ -1,0 +1,10 @@
+{
+    "issues": [],
+    "ai_recommendations": "This floor plan features a cohesive arrangement of 2 rooms. The overall layout is functional and meets basic architectural standards. No major design issues were detected during the analysis. It should provide a comfortable and efficient living environment.",
+    "top_suggestions": [],
+    "overall_score": 100,
+    "room_scores": {
+        "Room 1": 100,
+        "Room 2": 100
+    }
+}

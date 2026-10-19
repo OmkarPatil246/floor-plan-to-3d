@@ -1,56 +1,80 @@
 # Python
 __pycache__/
+**/*__pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 
-# Virtualenvs
+# Node / Frontend
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+
+# Virtual environments
 .venv/
 venv/
+**/venv/
+**/.venv/
+ENV/
+env/
 
-# IDE
+# IDE / Editor
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
-.DS_Store
+*.swp
+*.swo
 
-# Data and model artifacts (large, not source)
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data and large model weights (GitHub blocks files > 100MB)
 data/*
 !data/README.md
 checkpoints/
 runs/
 weights/
+**/weights/
 wandb/
 *.ckpt
 *.pt
 *.pth
 *.onnx
+*.safetensors
+*.h5
+*.bin
+*.incomplete
 
-# Notebook outputs (keep notebooks small in git)
+# Notebook outputs
 .ipynb_checkpoints/
-
-# Scratch notebooks — iteration / learning / scribbling. Never committed.
-# Move a notebook out of here to commit it as a polished narrative artifact.
 notebooks/scratch/
 
-# Local env overrides
+# Local env & secrets
 .env
 .env.local
-
-# Local-only notes (security advisories, scratch reminders, etc.)
+.env.*.local
 NOTES.local.md
-
-# Personal Claude Code settings (local-only)
 .claude/settings.local.json
-
-# Cloudflare wrangler cache
 .wrangler/
 
-# Raw screen recordings — source for docs/preview.gif, not for git
+# Logs and temporary files
+*.log
+*.tmp
+Untitled-*.txt
+
+# Media & recordings (source recordings, keep gifs/docs)
 *.mp4
 
-# Personal training infra — not for users
+# Personal training infra
 runpod_setup.sh

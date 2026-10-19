@@ -1,0 +1,45 @@
+{
+  "Bedroom": {
+    "minArea": {"value": 100, "severity": "HIGH"},
+    "maxDoors": {"value": 2, "severity": "MEDIUM"},
+    "minWindows": {"value": 1, "severity": "HIGH"},
+    "ventilationRequired": {"value": true, "severity": "HIGH"},
+    "recommendedFurniture": ["Bed", "Wardrobe", "Side Table"],
+    "recommendedLighting": ["Warm Ambient", "Reading Light"],
+    "wallTexture": "Smooth or Matte"
+  },
+  "Kitchen": {
+    "minArea": {"value": 80, "severity": "HIGH"},
+    "minWindows": {"value": 1, "severity": "MEDIUM"},
+    "ventilationRequired": {"value": true, "severity": "HIGH"},
+    "recommendedFurniture": ["Counters", "Cabinets", "Island"],
+    "recommendedLighting": ["Bright Task Lighting", "Under-cabinet Lights"]
+  },
+  "Living Room": {
+    "minArea": {"value": 150, "severity": "HIGH"},
+    "maxDoors": {"value": 2, "severity": "MEDIUM"},
+    "minWindows": {"value": 2, "severity": "MEDIUM"},
+    "ventilationRequired": {"value": true, "severity": "HIGH"},
+    "recommendedFurniture": ["Sofa", "TV Unit", "Center Table"],
+    "recommendedLighting": ["Warm Ambient", "Chandelier", "Accent Lighting"],
+    "wallTexture": "Textured or Accent Wall"
+  },
+  "Bathroom": {
+    "minArea": {"value": 40, "severity": "HIGH"},
+    "minWindows": {"value": 1, "severity": "LOW"},
+    "ventilationRequired": {"value": true, "severity": "HIGH"},
+    "recommendedFurniture": ["Vanity", "Shower Enclosure", "Mirror"]
+  },
+  "Dining": {
+    "minArea": {"value": 80, "severity": "HIGH"},
+    "minWindows": {"value": 1, "severity": "LOW"},
+    "ventilationRequired": {"value": false, "severity": "LOW"},
+    "recommendedFurniture": ["Dining Table", "Chairs", "Crockery Unit"]
+  },
+  "Balcony": {
+    "minArea": {"value": 30, "severity": "MEDIUM"},
+    "minWindows": {"value": 0, "severity": "LOW"},
+    "ventilationRequired": {"value": false, "severity": "LOW"},
+    "recommendedFurniture": ["Outdoor Seating", "Planters"]
+  }
+}

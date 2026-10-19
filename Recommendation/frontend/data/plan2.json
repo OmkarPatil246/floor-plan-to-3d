@@ -1,0 +1,12 @@
+{
+  "fileName": "VillaPlan.json",
+  "rooms": [
+    { "id": "Master Suite", "name": "Master Suite", "roomType": "Bedroom", "area": 200, "doors": 1, "windows": 3, "wallLength": 60, "orientation": "South", "connectedRooms": ["Corridor", "Ensuite"], "rect": {"x": 50, "y": 50, "w": 200, "h": 150} },
+    { "id": "Ensuite", "name": "Ensuite", "roomType": "Bathroom", "area": 60, "doors": 1, "windows": 1, "wallLength": 30, "orientation": "West", "connectedRooms": ["Master Suite"], "rect": {"x": 50, "y": 200, "w": 100, "h": 100} },
+    { "id": "Corridor", "name": "Corridor", "roomType": "Hallway", "area": 80, "doors": 4, "windows": 0, "wallLength": 50, "orientation": "Center", "connectedRooms": ["Master Suite", "Grand Living", "Kitchen", "Guest Room"], "rect": {"x": 250, "y": 50, "w": 80, "h": 250} },
+    { "id": "Grand Living", "name": "Grand Living", "roomType": "Living Room", "area": 300, "doors": 4, "windows": 2, "wallLength": 80, "orientation": "North", "connectedRooms": ["Corridor", "Dining", "Patio", "Entrance"], "rect": {"x": 330, "y": 50, "w": 200, "h": 150} },
+    { "id": "Kitchen", "name": "Kitchen", "roomType": "Kitchen", "area": 80, "doors": 2, "windows": 1, "wallLength": 40, "orientation": "East", "connectedRooms": ["Corridor", "Dining"], "rect": {"x": 330, "y": 200, "w": 100, "h": 100} },
+    { "id": "Dining", "name": "Dining", "roomType": "Dining Room", "area": 120, "doors": 2, "windows": 1, "wallLength": 45, "orientation": "East", "connectedRooms": ["Kitchen", "Grand Living"], "rect": {"x": 430, "y": 200, "w": 100, "h": 100} },
+    { "id": "Guest Room", "name": "Guest Room", "roomType": "Bedroom", "area": 100, "doors": 1, "windows": 1, "wallLength": 40, "orientation": "North", "connectedRooms": ["Corridor"], "rect": {"x": 150, "y": 200, "w": 100, "h": 100} }
+  ]
+}

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+# Optional: only needed for LLM-backed answers. The API works without
+# them and falls back to the deterministic rule engine.
+transformers
+torch
+accelerate
+sentencepiece

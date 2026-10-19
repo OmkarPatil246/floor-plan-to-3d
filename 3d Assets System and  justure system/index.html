@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D First-Person Furniture Game & Two-Hand Gesture System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #0d0f12;
+            color: #ffffff;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ----------------------------------------------------
+           FIRST-PERSON MINECRAFT CROSSHAIR
+           ---------------------------------------------------- */
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 22px;
+            height: 22px;
+            pointer-events: none;
+            z-index: 1200;
+            transition: transform 0.1s ease;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #ffffff;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
+        }
+
+        #crosshair::before {
+            top: 10px;
+            left: 2px;
+            width: 18px;
+            height: 2px;
+        }
+
+        #crosshair::after {
+            top: 2px;
+            left: 10px;
+            width: 2px;
+            height: 18px;
+        }
+
+        /* ----------------------------------------------------
+           VIRTUAL HAND SCREEN CURSORS (HAND 1 & HAND 2)
+           ---------------------------------------------------- */
+        .hand-screen-cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2500;
+            display: none;
+            will-change: transform;
+            transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
+            transition: width 0.1s ease, height 0.1s ease, border-color 0.1s ease, background 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .hand-screen-cursor::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ffffff;
+        }
+
+        .hand-screen-cursor .cursor-label {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            background: rgba(0, 0, 0, 0.85);
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        /* Hand 1: Cyan */
+        #hand-cursor-0 {
+            border: 2.5px solid #00f7ff;
+            background: rgba(0, 247, 255, 0.25);
+            box-shadow: 0 0 14px rgba(0, 247, 255, 0.8), inset 0 0 6px rgba(0, 247, 255, 0.6);
+        }
+
+        #hand-cursor-0 .cursor-label {
+            color: #00f7ff;
+            border: 1px solid rgba(0, 247, 255, 0.4);
+        }
+
+        #hand-cursor-0.pinching {
+            width: 18px;
+            height: 18px;
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.6);
+            box-shadow: 0 0 20px #00ff88;
+        }
+
+        #hand-cursor-0.pinching::after {
+            background: #00ff88;
+        }
+
+        /* Hand 2: Green */
+        #hand-cursor-1 {
+            border: 2.5px solid #00ff88;
+            background: rgba(0, 255, 136, 0.25);
+            box-shadow: 0 0 14px rgba(0, 255, 136, 0.8), inset 0 0 6px rgba(0, 255, 136, 0.6);
+        }
+
+        #hand-cursor-1 .cursor-label {
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.4);
+        }
+
+        #hand-cursor-1.pinching {
+            width: 18px;
+            height: 18px;
+            border-color: #ffff00;
+            background: rgba(255, 255, 0, 0.6);
+            box-shadow: 0 0 20px #ffff00;
+        }
+
+        #hand-cursor-1.pinching::after {
+            background: #ffff00;
+        }
+
+        /* ----------------------------------------------------
+           TOP GAME CONTROLS & HUD BAR
+           ---------------------------------------------------- */
+        #game-top-bar {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .hud-chip {
+            background: rgba(15, 18, 24, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hud-chip:hover {
+            background: rgba(30, 36, 48, 0.95);
+            border-color: rgba(255, 255, 255, 0.45);
+            transform: translateY(-2px);
+        }
+
+        .hud-chip.primary {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+            font-weight: 700;
+        }
+
+        .hud-chip.primary:hover {
+            background: #e6e6e6;
+        }
+
+        #controls-hint-bar {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(12, 14, 20, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 11px;
+            color: #cccccc;
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            white-space: nowrap;
+        }
+
+        .key-badge {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        #pointer-lock-prompt {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 247, 255, 0.15);
+            border: 1px solid rgba(0, 247, 255, 0.4);
+            color: #00f7ff;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            white-space: nowrap;
+        }
+
+        #pointer-lock-prompt:hover {
+            background: rgba(0, 247, 255, 0.25);
+            transform: translateX(-50%) translateY(-1px);
+        }
+
+        /* ----------------------------------------------------
+           TOP-RIGHT WEBCAM HUD CONTAINER
+           ---------------------------------------------------- */
+        #gesture-pip-container {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            width: 250px;
+            background: rgba(12, 15, 22, 0.94);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 2000;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+            transition: all 0.3s ease;
+        }
+
+        .pip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(6, 8, 12, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .pip-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .pip-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffaa00;
+            box-shadow: 0 0 6px #ffaa00;
+        }
+
+        .pip-status-dot.live {
+            background: #00ff88;
+            box-shadow: 0 0 8px #00ff88;
+        }
+
+        .pip-status-dot.paused {
+            background: #888888;
+            box-shadow: none;
+        }
+
+        .pip-status-dot.error {
+            background: #ff4444;
+            box-shadow: 0 0 8px #ff4444;
+        }
+
+        .pip-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.8px;
+        }
+
+        .pip-controls button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .pip-controls button:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .pip-body {
+            position: relative;
+            width: 100%;
+            height: 175px;
+            background: #000000;
+        }
+
+        #gesture-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            display: block;
+        }
+
+        #gesture-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #gesture-permission-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 12, 16, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        #gesture-permission-overlay p {
+            font-size: 11px;
+            color: #cccccc;
+            margin-bottom: 10px;
+        }
+
+        #camera-grant-btn {
+            background: #00f7ff;
+            color: #000000;
+            border: none;
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #camera-grant-btn:hover {
+            background: #ffffff;
+            transform: scale(1.05);
+        }
+
+        #gesture-hud {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.92));
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        #gesture-status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        #gesture-status-badge.status-idle {
+            background: rgba(255, 255, 255, 0.1);
+            color: #aaaaaa;
+        }
+
+        #gesture-status-badge.status-hover {
+            background: rgba(0, 247, 255, 0.25);
+            border-color: #00f7ff;
+            color: #00f7ff;
+        }
+
+        #gesture-status-badge.status-grab,
+        #gesture-status-badge.status-move {
+            background: #00ff88;
+            border-color: #00ff88;
+            color: #000000;
+        }
+
+        #gesture-status-badge.status-confirm {
+            background: #ffffff;
+            border-color: #ffffff;
+            color: #000000;
+        }
+
+        #gesture-sub-status {
+            font-size: 9px;
+            color: #aaaaaa;
+            margin-top: 3px;
+        }
+
+        .pip-footer-gestures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            padding: 6px 8px;
+            background: rgba(10, 12, 16, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gesture-hint {
+            font-size: 9px;
+            color: #bbbbbb;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3px 5px;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* ----------------------------------------------------
+           VERTICAL ASSET COLUMN (LEFT HAND SIDE)
+           ---------------------------------------------------- */
+        #hotbar-container {
+            position: absolute;
+            top: 50%;
+            left: 18px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        #hotbar-item-tooltip {
+            background: rgba(10, 12, 18, 0.94);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            order: 2;
+        }
+
+        #hotbar-item-tooltip span.highlight {
+            color: #00f7ff;
+            font-weight: 700;
+        }
+
+        #hotbar {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(14, 16, 24, 0.94);
+            backdrop-filter: blur(14px);
+            padding: 8px 6px;
+            border-radius: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.85);
+            pointer-events: auto;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 247, 255, 0.4) transparent;
+            order: 1;
+        }
+
+        #hotbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #hotbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 247, 255, 0.4);
+            border-radius: 4px;
+        }
+
+        .hotbar-slot {
+            width: 54px;
+            height: 48px;
+            background: rgba(26, 30, 42, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            pointer-events: auto;
+            flex-shrink: 0;
+        }
+
+        .hotbar-slot:hover,
+        .hotbar-slot.gesture-hover {
+            background: rgba(45, 52, 70, 0.95) !important;
+            border-color: #00f7ff !important;
+            transform: translateX(6px) scale(1.06) !important;
+            box-shadow: 0 4px 16px rgba(0, 247, 255, 0.4) !important;
+        }
+
+        .hotbar-slot.active {
+            background: rgba(255, 255, 255, 0.18) !important;
+            border: 2.5px solid #ffffff !important;
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.9), inset 0 0 8px rgba(255, 255, 255, 0.3) !important;
+            transform: translateX(8px) scale(1.08) !important;
+        }
+
+        .hotbar-slot .slot-number {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            font-family: monospace;
+            color: #aaaaaa;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .hotbar-slot.active .slot-number {
+            color: #ffffff;
+        }
+
+        .hotbar-slot .slot-icon {
+            font-size: 22px;
+            line-height: 1;
+            margin-top: 1px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+        }
+
+        .hotbar-slot .slot-label {
+            font-size: 7.5px;
+            color: #cccccc;
+            text-align: center;
+            text-shadow: 1px 1px 2px #000;
+            max-width: 48px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 1px;
+        }
+            margin-top: 2px;
+        }
+
+        /* ----------------------------------------------------
+           BIG DUSTBIN / TRASH BASKET (BOTTOM-RIGHT CORNER)
+           ---------------------------------------------------- */
+        #dustbin-container {
+            position: absolute;
+            bottom: 22px;
+            right: 28px;
+            width: 92px;
+            height: 104px;
+            background: rgba(18, 20, 28, 0.94);
+            backdrop-filter: blur(14px);
+            border: 2px solid rgba(255, 60, 80, 0.35);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 8px 6px;
+            box-sizing: border-box;
+            z-index: 1000;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 16px rgba(255, 60, 80, 0.2);
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #dustbin-container:hover {
+            border-color: #ff3366;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9), 0 0 24px rgba(255, 51, 102, 0.45);
+            transform: translateY(-2px);
+        }
+
+        /* Pulsing when dragging an object anywhere on screen */
+        #dustbin-container.drag-active {
+            border-color: #ffaa00;
+            box-shadow: 0 0 26px rgba(255, 170, 0, 0.55);
+            animation: dustbin-pulse 1.2s infinite ease-in-out;
+        }
+
+        @keyframes dustbin-pulse {
+            0%, 100% { transform: scale(1); border-color: #ffaa00; }
+            50% { transform: scale(1.05); border-color: #ff3366; box-shadow: 0 0 32px rgba(255, 51, 102, 0.7); }
+        }
+
+        /* Full highlight when dragging directly over the dustbin */
+        #dustbin-container.drag-over {
+            border-color: #ff0055 !important;
+            background: rgba(45, 12, 22, 0.96) !important;
+            box-shadow: 0 0 38px rgba(255, 0, 85, 0.9), inset 0 0 18px rgba(255, 0, 85, 0.4) !important;
+            transform: scale(1.15) translateY(-6px) !important;
+            animation: none !important;
+        }
+
+        /* Dustbin Lid with animated hinge open */
+        .dustbin-lid-wrap {
+            position: absolute;
+            top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-origin: left bottom;
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .dustbin-lid-handle {
+            width: 14px;
+            height: 4px;
+            background: #ff5577;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .dustbin-lid {
+            width: 48px;
+            height: 6px;
+            background: linear-gradient(90deg, #ff3366, #ff6b8b);
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(255, 51, 102, 0.5);
+        }
+
+        #dustbin-container.drag-over .dustbin-lid-wrap {
+            transform: translateY(-8px) rotate(-30deg);
+        }
+
+        /* Dustbin Body */
+        .dustbin-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 18px;
+        }
+
+        .dustbin-icon {
+            font-size: 34px;
+            line-height: 1;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+            transition: transform 0.2s ease;
+        }
+
+        #dustbin-container.drag-over .dustbin-icon {
+            transform: scale(1.18);
+        }
+
+        .dustbin-title {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #ff6b8b;
+            text-shadow: 0 1px 3px #000;
+            margin-top: 4px;
+        }
+
+        #dustbin-container.drag-over .dustbin-title {
+            color: #ffffff;
+        }
+
+        /* Drop Hint Badge */
+        .dustbin-drop-hint {
+            position: absolute;
+            top: -26px;
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background: rgba(255, 0, 85, 0.95);
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(255, 0, 85, 0.6);
+        }
+
+        #dustbin-container.drag-active .dustbin-drop-hint,
+        #dustbin-container.drag-over .dustbin-drop-hint {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #dustbin-container.drag-over .dustbin-drop-hint {
+            background: #ffffff;
+            color: #ff0055;
+            font-weight: 900;
+            box-shadow: 0 0 16px #ffffff;
+        }
+
+        /* Deletion Success Animation (Squash & Crunch) */
+        @keyframes dustbin-crunch-anim {
+            0% { transform: scale(1); }
+            30% { transform: scale(1.22, 0.78); background: rgba(255, 0, 85, 0.9); }
+            60% { transform: scale(0.88, 1.15) rotate(4deg); }
+            80% { transform: scale(1.05, 0.95) rotate(-2deg); }
+            100% { transform: scale(1); }
+        }
+
+        .dustbin-crunch {
+            animation: dustbin-crunch-anim 0.5s ease-out !important;
+        }
+
+        /* ----------------------------------------------------
+           TOAST NOTIFICATIONS
+           ---------------------------------------------------- */
+        #confirmation-toast {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-30px);
+            background: rgba(10, 12, 18, 0.96);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 22px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 2500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 28px rgba(0, 255, 136, 0.35);
+        }
+
+        #confirmation-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ----------------------------------------------------
+           LOADING INDICATOR
+           ---------------------------------------------------- */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            z-index: 3000;
+            text-align: center;
+            background: rgba(10, 12, 18, 0.92);
+            padding: 24px 32px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            border-top: 3px solid #00f7ff;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            animation: spin 0.85s linear infinite;
+            margin: 0 auto 14px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ----------------------------------------------------
+           OBJECT CONTROL PANEL (EDIT / TRANSFORM)
+           ---------------------------------------------------- */
+        #control-panel {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            background: rgba(12, 15, 22, 0.94);
+            backdrop-filter: blur(14px);
+            color: #ffffff;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            display: none;
+            min-width: 240px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
+        }
+
+        #control-panel.visible {
+            display: block;
+        }
+
+        #control-panel h3 {
+            margin-bottom: 10px;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            padding-bottom: 6px;
+        }
+
+        .control-group {
+            margin: 8px 0;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 10px;
+            color: #aaaaaa;
+            text-transform: uppercase;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            margin: 3px 0;
+            accent-color: #00f7ff;
+        }
+
+        .control-group button {
+            width: 100%;
+            padding: 7px 10px;
+            margin: 3px 0;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+
+        .control-group button:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .control-group button.delete {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: rgba(255, 68, 68, 0.4);
+            color: #ff6666;
+        }
+
+        .control-group button.delete:hover {
+            background: #ff4444;
+            color: #ffffff;
+        }
+
+        /* ----------------------------------------------------
+           COMPATIBILITY / HIDDEN ELEMENTS
+           ---------------------------------------------------- */
+        #toolbar { display: none; }
+        #info-panel { display: none !important; }
+        #gesture-mode-bar { display: none !important; }
+        #gesture-action-bar { display: none !important; }
+        #gesture-camera-bar { display: none !important; }
+        #collision-badge { display: none; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- First Person Crosshair (Minecraft Style) -->
+    <div id="crosshair"></div>
+
+    <!-- Hand 1 Screen Cursor (Cyan) -->
+    <div id="hand-cursor-0" class="hand-screen-cursor">
+        <span class="cursor-label">Hand 1</span>
+    </div>
+
+    <!-- Hand 2 Screen Cursor (Green) -->
+    <div id="hand-cursor-1" class="hand-screen-cursor">
+        <span class="cursor-label">Hand 2</span>
+    </div>
+
+    <!-- Top Game HUD Bar -->
+    <div id="game-top-bar">
+        <button id="view-mode-toggle" class="hud-chip primary">
+            <span id="view-mode-icon">🚶</span>
+            <span id="view-mode-text">First Person (V)</span>
+        </button>
+    </div>
+
+    <!-- Camera HUD & Hand Tracker -->
+    <div id="gesture-pip-container">
+        <div class="pip-header">
+            <div class="pip-title-wrap">
+                <span class="pip-status-dot" id="pip-live-dot"></span>
+                <span class="pip-title">CAMERA & GESTURES (2 HANDS)</span>
+            </div>
+            <div class="pip-controls">
+                <button id="pip-toggle-btn" title="Toggle camera">📷</button>
+                <button id="pip-minimize-btn" title="Minimize preview">−</button>
+            </div>
+        </div>
+        <div class="pip-body" id="pip-body">
+            <video id="gesture-video" autoplay playsinline muted></video>
+            <canvas id="gesture-canvas"></canvas>
+            <div id="gesture-permission-overlay" style="display:none;">
+                <p>Allow camera access for hand tracking</p>
+                <button id="camera-grant-btn">📷 Allow Camera</button>
+            </div>
+            <div id="gesture-hud">
+                <div id="gesture-status-badge">Starting Camera...</div>
+                <div id="gesture-sub-status">Detecting Both Hands</div>
+                <button id="gesture-retry-btn" style="display:none; margin-top:5px; background:#00f7ff; color:#000000; border:none; padding:4px 12px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">🔄 Retry Camera</button>
+            </div>
+        </div>
+        <div class="pip-footer-gestures">
+            <span class="gesture-hint" title="Open hand moves the cursor">🖐️ Open: Move Cursor</span>
+            <span class="gesture-hint" title="Pinch to select, drag or pull corners">🤏 Pinch: Drag / Resize</span>
+            <span class="gesture-hint" title="Two-hand pinch apart/together to scale, turn to rotate">🤏🤏 2 Hands: Scale & Rotate</span>
+            <span class="gesture-hint" title="Closed fist cancels current drag/placement">✊ Fist: Cancel</span>
+        </div>
+    </div>
+
+    <!-- Movement & Interaction Controls Guide -->
+    <div id="controls-hint-bar">
+        <span><span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span> Walk</span>
+        <span><span class="key-badge">Shift</span> Sprint</span>
+        <span><span class="key-badge">Mouse</span> Look</span>
+        <span><span class="key-badge">🖐️ Open</span> Move Cursor</span>
+        <span><span class="key-badge">🤏 Pinch</span> Drag & Drop</span>
+        <span><span class="key-badge">🤏 Corner</span> Resize</span>
+        <span><span class="key-badge">✊ Fist</span> Cancel</span>
+        <span><span class="key-badge">🗑️</span> Trash Drop</span>
+    </div>
+
+    <!-- Pointer Lock Prompt -->
+    <div id="pointer-lock-prompt">
+        🖱️ Click screen to lock mouse for smooth 360° look (ESC to release)
+    </div>
+
+    <!-- Minecraft Style Bottom Hotbar -->
+    <div id="hotbar-container">
+        <div id="hotbar-item-tooltip">
+            Pinch an asset below to select & drag onto floor
+        </div>
+        <div id="hotbar">
+            <!-- 11 Hotbar slots populated dynamically in JS -->
+        </div>
+    </div>
+
+    <!-- Big Dustbin / Trash Basket (Bottom-Right Corner) -->
+    <div id="dustbin-container" title="Drag & drop any object here to delete">
+        <div class="dustbin-lid-wrap">
+            <div class="dustbin-lid-handle"></div>
+            <div class="dustbin-lid"></div>
+        </div>
+        <div class="dustbin-body">
+            <span class="dustbin-icon">🗑️</span>
+            <span class="dustbin-title">TRASH BIN</span>
+        </div>
+        <div class="dustbin-drop-hint">DROP TO DELETE</div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="confirmation-toast">Position Confirmed</div>
+
+    <!-- Loading Indicator -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Loading 3D World & Assets...</p>
+    </div>
+
+    <!-- Edit Object Control Panel -->
+    <div id="control-panel">
+        <h3>Edit Object</h3>
+        <div class="control-group">
+            <label>Rotation Y: <span id="rotation-value">0°</span></label>
+            <input type="range" id="rotation-y" min="0" max="360" step="15" value="0">
+        </div>
+        <div class="control-group">
+            <label>Scale: <span id="scale-value">1.0</span></label>
+            <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+            <div style="display:flex; gap:6px;">
+                <button id="rotate-90-btn" style="flex:1;">↻ Rotate 90°</button>
+                <button id="duplicate-btn" style="flex:1;">📋 Duplicate</button>
+            </div>
+            <button id="delete-btn" class="delete">🗑️ Delete (DEL)</button>
+        </div>
+    </div>
+
+    <!-- Hidden compatibility elements -->
+    <div id="toolbar"></div>
+    <div id="info-panel" style="display: none !important;"></div>
+    <div id="gesture-camera-bar" style="display: none !important;"></div>
+    <div id="gesture-action-bar" style="display: none !important;"></div>
+    <div id="gesture-mode-bar" style="display: none !important;"></div>
+    <div id="collision-badge" style="display: none !important;"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+            "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
+        }
+    }
+    </script>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>

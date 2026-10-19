@@ -1,0 +1,112 @@
+{
+  "fileName": "ProblematicApartment.json",
+  "rooms": [
+    {
+      "id": "Master Bedroom",
+      "name": "Master Bedroom",
+      "roomType": "Bedroom",
+      "area": 75,
+      "doors": 1,
+      "windows": 0,
+      "wallLength": 36,
+      "orientation": "West",
+      "connectedRooms": ["Hallway"],
+      "rect": {
+        "x": 20,
+        "y": 20,
+        "w": 100,
+        "h": 100
+      }
+    },
+    {
+      "id": "Hallway",
+      "name": "Hallway",
+      "roomType": "Hallway",
+      "area": 45,
+      "doors": 4,
+      "windows": 0,
+      "wallLength": 30,
+      "orientation": "South",
+      "connectedRooms": [
+        "Master Bedroom",
+        "Kitchen",
+        "Bathroom",
+        "Living Room"
+      ],
+      "rect": {
+        "x": 120,
+        "y": 20,
+        "w": 80,
+        "h": 180
+      }
+    },
+    {
+      "id": "Living Room",
+      "name": "Living Room",
+      "roomType": "Living Room",
+      "area": 140,
+      "doors": 2,
+      "windows": 1,
+      "wallLength": 52,
+      "orientation": "West",
+      "connectedRooms": ["Hallway"],
+      "rect": {
+        "x": 200,
+        "y": 20,
+        "w": 140,
+        "h": 100
+      }
+    },
+    {
+      "id": "Kitchen",
+      "name": "Kitchen",
+      "roomType": "Kitchen",
+      "area": 55,
+      "doors": 1,
+      "windows": 0,
+      "wallLength": 30,
+      "orientation": "West",
+      "connectedRooms": ["Hallway"],
+      "rect": {
+        "x": 200,
+        "y": 120,
+        "w": 80,
+        "h": 80
+      }
+    },
+    {
+      "id": "Bathroom",
+      "name": "Bathroom",
+      "roomType": "Bathroom",
+      "area": 20,
+      "doors": 1,
+      "windows": 0,
+      "wallLength": 18,
+      "orientation": "South",
+      "connectedRooms": ["Hallway"],
+      "rect": {
+        "x": 280,
+        "y": 120,
+        "w": 60,
+        "h": 80
+      }
+    },
+    {
+      "id": "Study Room",
+      "name": "Study Room",
+      "roomType": "Study",
+      "area": 45,
+      "doors": 1,
+      "windows": 0,
+      "wallLength": 26,
+      "orientation": "North",
+      "connectedRooms": ["Living Room"],
+      "rect": {
+        "x": 20,
+        "y": 120,
+        "w": 100,
+        "h": 80
+      }
+    }
+  ]
+}

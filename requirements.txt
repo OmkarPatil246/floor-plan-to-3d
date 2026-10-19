@@ -1,0 +1,40 @@
+# Dependencies for FloorPlan-to-3D Merged Server
+# Requires Python 3.11 (TensorFlow 2.13 not compatible with Python 3.14+)
+
+# Core ML Framework (Mask R-CNN)
+tensorflow==2.13.0
+keras==2.13.1
+
+# Computer Vision & Image Processing
+opencv-python==4.8.1.78
+scikit-image==0.21.0
+Pillow==10.0.1
+imageio==2.31.5
+
+# OCR Support (for space-name detection)
+easyocr==1.7.0
+
+# Scientific Computing
+numpy==1.24.3
+scipy==1.11.3
+matplotlib==3.7.2
+
+# Web Framework
+Flask==2.3.3
+Flask-Cors==4.0.0
+Werkzeug==2.3.7
+
+# Image Processing & Augmentation
+imgaug==0.4.0
+
+# Utilities
+h5py==3.9.0
+PyYAML==6.0.1
+requests==2.31.0
+Cython==3.0.2
+
+# Date/Time handling
+python-dateutil==2.8.2
+
+# SVG rendering (for SVG → image conversion)
+cairosvg>=2.7

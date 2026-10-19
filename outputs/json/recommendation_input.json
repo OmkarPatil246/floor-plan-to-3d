@@ -1,0 +1,2509 @@
+{
+  "floorPlan": {
+    "canvasSize": {
+      "width": 512,
+      "height": 512
+    },
+    "totalArea": 2613.5,
+    "rooms": [
+      {
+        "name": "Room 1",
+        "roomType": "Room",
+        "area": 1260.0,
+        "doors": 7,
+        "windows": 3,
+        "wallLength": 561.9578962178559,
+        "orientation": "square",
+        "connectedRooms": [],
+        "bounds": {
+          "left": 353.0,
+          "top": 214.0,
+          "right": 435.0,
+          "bottom": 298.0,
+          "width": 82.0,
+          "height": 84.0
+        }
+      },
+      {
+        "name": "Room 2",
+        "roomType": "Room",
+        "area": 1353.5,
+        "doors": 4,
+        "windows": 2,
+        "wallLength": 623.3364306447764,
+        "orientation": "square",
+        "connectedRooms": [],
+        "bounds": {
+          "left": 138.0,
+          "top": 147.0,
+          "right": 237.0,
+          "bottom": 267.0,
+          "width": 99.0,
+          "height": 120.0
+        }
+      }
+    ]
+  },
+  "detectionStats": {
+    "wallsDetected": 22,
+    "windowsDetected": 15,
+    "doorsDetected": 15,
+    "roomsIdentified": 2
+  },
+  "geometryDetails": {
+    "walls": [
+      {
+        "id": "wall_0",
+        "area": 36.0,
+        "length": 24.0,
+        "bounds": {
+          "left": 407.0,
+          "top": 391.0,
+          "right": 413.0,
+          "bottom": 397.0,
+          "width": 6.0,
+          "height": 6.0
+        },
+        "orientation": "square",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_5"
+        ],
+        "connectedDoors": [],
+        "windowCount": 1,
+        "doorCount": 0,
+        "polygon": [
+          [
+            407,
+            391
+          ],
+          [
+            407,
+            397
+          ],
+          [
+            413,
+            397
+          ],
+          [
+            413,
+            391
+          ]
+        ]
+      },
+      {
+        "id": "wall_1",
+        "area": 345.0,
+        "length": 126.83710263764303,
+        "bounds": {
+          "left": 317.0,
+          "top": 391.0,
+          "right": 375.0,
+          "bottom": 399.0,
+          "width": 58.0,
+          "height": 8.0
+        },
+        "orientation": "horizontal",
+        "vertices": 6,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_0",
+          "window_1",
+          "window_5"
+        ],
+        "connectedDoors": [],
+        "windowCount": 3,
+        "doorCount": 0,
+        "polygon": [
+          [
+            317,
+            394
+          ],
+          [
+            321,
+            399
+          ],
+          [
+            323,
+            397
+          ],
+          [
+            375,
+            397
+          ],
+          [
+            375,
+            391
+          ],
+          [
+            319,
+            391
+          ]
+        ]
+      },
+      {
+        "id": "wall_2",
+        "area": 174.0,
+        "length": 64.14213562373095,
+        "bounds": {
+          "left": 233.0,
+          "top": 390.0,
+          "right": 259.0,
+          "bottom": 400.0,
+          "width": 26.0,
+          "height": 10.0
+        },
+        "orientation": "horizontal",
+        "vertices": 6,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_0",
+          "window_2"
+        ],
+        "connectedDoors": [],
+        "windowCount": 2,
+        "doorCount": 0,
+        "polygon": [
+          [
+            233,
+            390
+          ],
+          [
+            233,
+            397
+          ],
+          [
+            251,
+            397
+          ],
+          [
+            255,
+            400
+          ],
+          [
+            259,
+            396
+          ],
+          [
+            253,
+            390
+          ]
+        ]
+      },
+      {
+        "id": "wall_3",
+        "area": 199.5,
+        "length": 67.07106781186548,
+        "bounds": {
+          "left": 150.0,
+          "top": 383.0,
+          "right": 170.0,
+          "bottom": 397.0,
+          "width": 20.0,
+          "height": 14.0
+        },
+        "orientation": "square",
+        "vertices": 6,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_2",
+          "window_3"
+        ],
+        "connectedDoors": [
+          "door_0"
+        ],
+        "windowCount": 2,
+        "doorCount": 1,
+        "polygon": [
+          [
+            150,
+            383
+          ],
+          [
+            150,
+            397
+          ],
+          [
+            170,
+            397
+          ],
+          [
+            170,
+            390
+          ],
+          [
+            159,
+            390
+          ],
+          [
+            158,
+            383
+          ]
+        ]
+      },
+      {
+        "id": "wall_4",
+        "area": 39.0,
+        "length": 25.08276253029822,
+        "bounds": {
+          "left": 26.0,
+          "top": 349.0,
+          "right": 32.0,
+          "bottom": 356.0,
+          "width": 6.0,
+          "height": 7.0
+        },
+        "orientation": "square",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_4"
+        ],
+        "connectedDoors": [],
+        "windowCount": 1,
+        "doorCount": 0,
+        "polygon": [
+          [
+            26,
+            349
+          ],
+          [
+            26,
+            356
+          ],
+          [
+            32,
+            356
+          ],
+          [
+            32,
+            350
+          ]
+        ]
+      },
+      {
+        "id": "wall_5",
+        "area": 54.0,
+        "length": 30.0,
+        "bounds": {
+          "left": 407.0,
+          "top": 318.0,
+          "right": 413.0,
+          "bottom": 327.0,
+          "width": 6.0,
+          "height": 9.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_5",
+          "window_6",
+          "window_7"
+        ],
+        "connectedDoors": [
+          "door_2",
+          "door_4"
+        ],
+        "windowCount": 3,
+        "doorCount": 2,
+        "polygon": [
+          [
+            407,
+            318
+          ],
+          [
+            407,
+            327
+          ],
+          [
+            413,
+            327
+          ],
+          [
+            413,
+            318
+          ]
+        ]
+      },
+      {
+        "id": "wall_6",
+        "area": 380.5,
+        "length": 175.13990527354457,
+        "bounds": {
+          "left": 137.0,
+          "top": 311.0,
+          "right": 158.0,
+          "bottom": 362.0,
+          "width": 21.0,
+          "height": 51.0
+        },
+        "orientation": "vertical",
+        "vertices": 10,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_3"
+        ],
+        "connectedDoors": [
+          "door_0",
+          "door_1",
+          "door_3"
+        ],
+        "windowCount": 1,
+        "doorCount": 3,
+        "polygon": [
+          [
+            138,
+            311
+          ],
+          [
+            138,
+            314
+          ],
+          [
+            155,
+            315
+          ],
+          [
+            155,
+            348
+          ],
+          [
+            137,
+            349
+          ],
+          [
+            137,
+            356
+          ],
+          [
+            149,
+            356
+          ],
+          [
+            150,
+            362
+          ],
+          [
+            158,
+            362
+          ],
+          [
+            158,
+            311
+          ]
+        ]
+      },
+      {
+        "id": "wall_7",
+        "area": 450.0,
+        "length": 181.93598170957918,
+        "bounds": {
+          "left": 63.0,
+          "top": 310.0,
+          "right": 107.0,
+          "bottom": 356.0,
+          "width": 44.0,
+          "height": 46.0
+        },
+        "orientation": "square",
+        "vertices": 9,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_3",
+          "window_4"
+        ],
+        "connectedDoors": [
+          "door_0",
+          "door_1",
+          "door_3",
+          "door_6"
+        ],
+        "windowCount": 2,
+        "doorCount": 4,
+        "polygon": [
+          [
+            107,
+            311
+          ],
+          [
+            100,
+            310
+          ],
+          [
+            100,
+            348
+          ],
+          [
+            64,
+            349
+          ],
+          [
+            63,
+            356
+          ],
+          [
+            107,
+            356
+          ],
+          [
+            107,
+            349
+          ],
+          [
+            103,
+            348
+          ],
+          [
+            103,
+            315
+          ]
+        ]
+      },
+      {
+        "id": "wall_8",
+        "area": 49.0,
+        "length": 28.280109889280517,
+        "bounds": {
+          "left": 431.0,
+          "top": 282.0,
+          "right": 438.0,
+          "bottom": 290.0,
+          "width": 7.0,
+          "height": 8.0
+        },
+        "orientation": "square",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_6",
+          "window_7"
+        ],
+        "connectedDoors": [
+          "door_2",
+          "door_4"
+        ],
+        "windowCount": 2,
+        "doorCount": 2,
+        "polygon": [
+          [
+            431,
+            282
+          ],
+          [
+            431,
+            290
+          ],
+          [
+            438,
+            290
+          ],
+          [
+            438,
+            284
+          ]
+        ]
+      },
+      {
+        "id": "wall_9",
+        "area": 601.0,
+        "length": 275.16947801408736,
+        "bounds": {
+          "left": 26.0,
+          "top": 279.0,
+          "right": 103.0,
+          "bottom": 334.0,
+          "width": 77.0,
+          "height": 55.0
+        },
+        "orientation": "square",
+        "vertices": 10,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_4",
+          "window_8"
+        ],
+        "connectedDoors": [
+          "door_1",
+          "door_3",
+          "door_6",
+          "door_8"
+        ],
+        "windowCount": 2,
+        "doorCount": 4,
+        "polygon": [
+          [
+            26,
+            334
+          ],
+          [
+            32,
+            334
+          ],
+          [
+            33,
+            289
+          ],
+          [
+            103,
+            290
+          ],
+          [
+            103,
+            279
+          ],
+          [
+            100,
+            279
+          ],
+          [
+            99,
+            286
+          ],
+          [
+            33,
+            286
+          ],
+          [
+            32,
+            279
+          ],
+          [
+            27,
+            279
+          ]
+        ]
+      },
+      {
+        "id": "wall_10",
+        "area": 471.0,
+        "length": 243.9884530814549,
+        "bounds": {
+          "left": 26.0,
+          "top": 229.0,
+          "right": 103.0,
+          "bottom": 264.0,
+          "width": 77.0,
+          "height": 35.0
+        },
+        "orientation": "horizontal",
+        "vertices": 11,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_8",
+          "window_9"
+        ],
+        "connectedDoors": [
+          "door_3",
+          "door_6",
+          "door_8",
+          "door_11"
+        ],
+        "windowCount": 2,
+        "doorCount": 4,
+        "polygon": [
+          [
+            26,
+            230
+          ],
+          [
+            26,
+            264
+          ],
+          [
+            32,
+            264
+          ],
+          [
+            32,
+            248
+          ],
+          [
+            34,
+            246
+          ],
+          [
+            99,
+            246
+          ],
+          [
+            100,
+            258
+          ],
+          [
+            103,
+            258
+          ],
+          [
+            103,
+            243
+          ],
+          [
+            33,
+            243
+          ],
+          [
+            32,
+            229
+          ]
+        ]
+      },
+      {
+        "id": "wall_11",
+        "area": 676.0,
+        "length": 223.190660519865,
+        "bounds": {
+          "left": 453.0,
+          "top": 214.0,
+          "right": 476.0,
+          "bottom": 290.0,
+          "width": 23.0,
+          "height": 76.0
+        },
+        "orientation": "vertical",
+        "vertices": 11,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_6",
+          "window_7"
+        ],
+        "connectedDoors": [
+          "door_2",
+          "door_4",
+          "door_9",
+          "door_12"
+        ],
+        "windowCount": 2,
+        "doorCount": 4,
+        "polygon": [
+          [
+            476,
+            214
+          ],
+          [
+            469,
+            214
+          ],
+          [
+            468,
+            221
+          ],
+          [
+            455,
+            221
+          ],
+          [
+            455,
+            224
+          ],
+          [
+            469,
+            225
+          ],
+          [
+            470,
+            270
+          ],
+          [
+            469,
+            282
+          ],
+          [
+            453,
+            283
+          ],
+          [
+            453,
+            290
+          ],
+          [
+            476,
+            290
+          ]
+        ]
+      },
+      {
+        "id": "wall_12",
+        "area": 1260.0,
+        "length": 561.9578962178559,
+        "bounds": {
+          "left": 353.0,
+          "top": 214.0,
+          "right": 435.0,
+          "bottom": 298.0,
+          "width": 82.0,
+          "height": 84.0
+        },
+        "orientation": "square",
+        "vertices": 28,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_6",
+          "window_7",
+          "window_10"
+        ],
+        "connectedDoors": [
+          "door_2",
+          "door_4",
+          "door_9",
+          "door_10",
+          "door_12",
+          "door_13",
+          "door_14"
+        ],
+        "windowCount": 3,
+        "doorCount": 7,
+        "polygon": [
+          [
+            353,
+            214
+          ],
+          [
+            353,
+            267
+          ],
+          [
+            358,
+            268
+          ],
+          [
+            358,
+            277
+          ],
+          [
+            379,
+            277
+          ],
+          [
+            381,
+            286
+          ],
+          [
+            406,
+            286
+          ],
+          [
+            407,
+            298
+          ],
+          [
+            413,
+            298
+          ],
+          [
+            416,
+            283
+          ],
+          [
+            383,
+            282
+          ],
+          [
+            383,
+            240
+          ],
+          [
+            430,
+            239
+          ],
+          [
+            431,
+            264
+          ],
+          [
+            434,
+            264
+          ],
+          [
+            435,
+            221
+          ],
+          [
+            431,
+            221
+          ],
+          [
+            430,
+            236
+          ],
+          [
+            384,
+            236
+          ],
+          [
+            383,
+            221
+          ],
+          [
+            380,
+            221
+          ],
+          [
+            380,
+            263
+          ],
+          [
+            357,
+            264
+          ],
+          [
+            356,
+            225
+          ],
+          [
+            363,
+            224
+          ],
+          [
+            363,
+            221
+          ],
+          [
+            357,
+            221
+          ],
+          [
+            356,
+            214
+          ]
+        ]
+      },
+      {
+        "id": "wall_13",
+        "area": 448.0,
+        "length": 139.17780447134913,
+        "bounds": {
+          "left": 427.0,
+          "top": 172.0,
+          "right": 476.0,
+          "bottom": 194.0,
+          "width": 49.0,
+          "height": 22.0
+        },
+        "orientation": "horizontal",
+        "vertices": 6,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_10"
+        ],
+        "connectedDoors": [
+          "door_9",
+          "door_12"
+        ],
+        "windowCount": 1,
+        "doorCount": 2,
+        "polygon": [
+          [
+            427,
+            179
+          ],
+          [
+            468,
+            179
+          ],
+          [
+            469,
+            193
+          ],
+          [
+            476,
+            194
+          ],
+          [
+            476,
+            172
+          ],
+          [
+            428,
+            172
+          ]
+        ]
+      },
+      {
+        "id": "wall_14",
+        "area": 392.5,
+        "length": 138.05601192391816,
+        "bounds": {
+          "left": 352.0,
+          "top": 172.0,
+          "right": 400.0,
+          "bottom": 194.0,
+          "width": 48.0,
+          "height": 22.0
+        },
+        "orientation": "horizontal",
+        "vertices": 6,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_10"
+        ],
+        "connectedDoors": [
+          "door_10",
+          "door_13",
+          "door_14"
+        ],
+        "windowCount": 1,
+        "doorCount": 3,
+        "polygon": [
+          [
+            353,
+            194
+          ],
+          [
+            356,
+            194
+          ],
+          [
+            357,
+            179
+          ],
+          [
+            400,
+            179
+          ],
+          [
+            400,
+            172
+          ],
+          [
+            352,
+            172
+          ]
+        ]
+      },
+      {
+        "id": "wall_15",
+        "area": 168.0,
+        "length": 62.0,
+        "bounds": {
+          "left": 307.0,
+          "top": 172.0,
+          "right": 331.0,
+          "bottom": 179.0,
+          "width": 24.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_11"
+        ],
+        "connectedDoors": [
+          "door_13",
+          "door_14"
+        ],
+        "windowCount": 1,
+        "doorCount": 2,
+        "polygon": [
+          [
+            307,
+            172
+          ],
+          [
+            307,
+            179
+          ],
+          [
+            331,
+            179
+          ],
+          [
+            331,
+            172
+          ]
+        ]
+      },
+      {
+        "id": "wall_16",
+        "area": 540.0,
+        "length": 309.18960050346266,
+        "bounds": {
+          "left": 222.0,
+          "top": 168.0,
+          "right": 279.0,
+          "bottom": 267.0,
+          "width": 57.0,
+          "height": 99.0
+        },
+        "orientation": "vertical",
+        "vertices": 10,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_11",
+          "window_12"
+        ],
+        "connectedDoors": [
+          "door_5",
+          "door_7"
+        ],
+        "windowCount": 2,
+        "doorCount": 2,
+        "polygon": [
+          [
+            274,
+            168
+          ],
+          [
+            267,
+            168
+          ],
+          [
+            267,
+            263
+          ],
+          [
+            222,
+            264
+          ],
+          [
+            222,
+            267
+          ],
+          [
+            270,
+            267
+          ],
+          [
+            270,
+            180
+          ],
+          [
+            279,
+            179
+          ],
+          [
+            279,
+            172
+          ],
+          [
+            275,
+            172
+          ]
+        ]
+      },
+      {
+        "id": "wall_17",
+        "area": 288.0,
+        "length": 108.0,
+        "bounds": {
+          "left": 26.0,
+          "top": 167.0,
+          "right": 32.0,
+          "bottom": 215.0,
+          "width": 6.0,
+          "height": 48.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_9",
+          "window_14"
+        ],
+        "connectedDoors": [],
+        "windowCount": 2,
+        "doorCount": 0,
+        "polygon": [
+          [
+            26,
+            167
+          ],
+          [
+            26,
+            215
+          ],
+          [
+            32,
+            215
+          ],
+          [
+            32,
+            167
+          ]
+        ]
+      },
+      {
+        "id": "wall_18",
+        "area": 36.0,
+        "length": 24.165525060596437,
+        "bounds": {
+          "left": 268.0,
+          "top": 147.0,
+          "right": 274.0,
+          "bottom": 154.0,
+          "width": 6.0,
+          "height": 7.0
+        },
+        "orientation": "square",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_11",
+          "window_12"
+        ],
+        "connectedDoors": [],
+        "windowCount": 2,
+        "doorCount": 0,
+        "polygon": [
+          [
+            268,
+            147
+          ],
+          [
+            268,
+            153
+          ],
+          [
+            274,
+            154
+          ],
+          [
+            274,
+            148
+          ]
+        ]
+      },
+      {
+        "id": "wall_19",
+        "area": 1353.5,
+        "length": 623.3364306447764,
+        "bounds": {
+          "left": 138.0,
+          "top": 147.0,
+          "right": 237.0,
+          "bottom": 267.0,
+          "width": 99.0,
+          "height": 120.0
+        },
+        "orientation": "square",
+        "vertices": 20,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_12",
+          "window_13"
+        ],
+        "connectedDoors": [
+          "door_5",
+          "door_7",
+          "door_8",
+          "door_11"
+        ],
+        "windowCount": 2,
+        "doorCount": 4,
+        "polygon": [
+          [
+            237,
+            147
+          ],
+          [
+            172,
+            147
+          ],
+          [
+            172,
+            154
+          ],
+          [
+            199,
+            155
+          ],
+          [
+            199,
+            217
+          ],
+          [
+            139,
+            218
+          ],
+          [
+            138,
+            221
+          ],
+          [
+            154,
+            222
+          ],
+          [
+            154,
+            267
+          ],
+          [
+            202,
+            267
+          ],
+          [
+            202,
+            251
+          ],
+          [
+            199,
+            251
+          ],
+          [
+            198,
+            264
+          ],
+          [
+            158,
+            263
+          ],
+          [
+            158,
+            222
+          ],
+          [
+            198,
+            221
+          ],
+          [
+            199,
+            234
+          ],
+          [
+            202,
+            234
+          ],
+          [
+            202,
+            155
+          ],
+          [
+            237,
+            154
+          ]
+        ]
+      },
+      {
+        "id": "wall_20",
+        "area": 733.5,
+        "length": 302.09576326535966,
+        "bounds": {
+          "left": 64.0,
+          "top": 147.0,
+          "right": 127.0,
+          "bottom": 222.0,
+          "width": 63.0,
+          "height": 75.0
+        },
+        "orientation": "square",
+        "vertices": 10,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_13",
+          "window_14"
+        ],
+        "connectedDoors": [
+          "door_6",
+          "door_8",
+          "door_11"
+        ],
+        "windowCount": 2,
+        "doorCount": 3,
+        "polygon": [
+          [
+            64,
+            147
+          ],
+          [
+            64,
+            154
+          ],
+          [
+            100,
+            155
+          ],
+          [
+            100,
+            222
+          ],
+          [
+            118,
+            221
+          ],
+          [
+            118,
+            218
+          ],
+          [
+            103,
+            217
+          ],
+          [
+            103,
+            155
+          ],
+          [
+            127,
+            154
+          ],
+          [
+            127,
+            147
+          ]
+        ]
+      },
+      {
+        "id": "wall_21",
+        "area": 42.0,
+        "length": 26.0,
+        "bounds": {
+          "left": 26.0,
+          "top": 147.0,
+          "right": 32.0,
+          "bottom": 154.0,
+          "width": 6.0,
+          "height": 7.0
+        },
+        "orientation": "square",
+        "vertices": 4,
+        "hasHoles": false,
+        "holeCount": 0,
+        "connectedWindows": [
+          "window_14"
+        ],
+        "connectedDoors": [],
+        "windowCount": 1,
+        "doorCount": 0,
+        "polygon": [
+          [
+            26,
+            147
+          ],
+          [
+            26,
+            154
+          ],
+          [
+            32,
+            154
+          ],
+          [
+            32,
+            147
+          ]
+        ]
+      }
+    ],
+    "windows": [
+      {
+        "id": "window_0",
+        "area": 278.0,
+        "perimeter": 112.90962355240106,
+        "bounds": {
+          "left": 255.0,
+          "top": 397.0,
+          "right": 300.0,
+          "bottom": 417.0,
+          "width": 45.0,
+          "height": 20.0
+        },
+        "orientation": "horizontal",
+        "vertices": 8,
+        "polygon": [
+          [
+            255,
+            401
+          ],
+          [
+            267,
+            414
+          ],
+          [
+            273,
+            412
+          ],
+          [
+            275,
+            417
+          ],
+          [
+            300,
+            417
+          ],
+          [
+            300,
+            411
+          ],
+          [
+            273,
+            411
+          ],
+          [
+            260,
+            397
+          ]
+        ]
+      },
+      {
+        "id": "window_1",
+        "area": 138.0,
+        "perimeter": 49.874501744659376,
+        "bounds": {
+          "left": 303.0,
+          "top": 396.0,
+          "right": 320.0,
+          "bottom": 413.0,
+          "width": 17.0,
+          "height": 17.0
+        },
+        "orientation": "square",
+        "vertices": 7,
+        "polygon": [
+          [
+            318,
+            397
+          ],
+          [
+            315,
+            396
+          ],
+          [
+            304,
+            407
+          ],
+          [
+            303,
+            410
+          ],
+          [
+            306,
+            413
+          ],
+          [
+            309,
+            413
+          ],
+          [
+            320,
+            401
+          ]
+        ]
+      },
+      {
+        "id": "window_2",
+        "area": 427.0,
+        "perimeter": 136.0,
+        "bounds": {
+          "left": 171.0,
+          "top": 390.0,
+          "right": 232.0,
+          "bottom": 397.0,
+          "width": 61.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            171,
+            390
+          ],
+          [
+            171,
+            397
+          ],
+          [
+            232,
+            397
+          ],
+          [
+            232,
+            390
+          ]
+        ]
+      },
+      {
+        "id": "window_3",
+        "area": 146.5,
+        "perimeter": 54.09605220636627,
+        "bounds": {
+          "left": 150.0,
+          "top": 363.0,
+          "right": 158.0,
+          "bottom": 383.0,
+          "width": 8.0,
+          "height": 20.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            150,
+            363
+          ],
+          [
+            150,
+            382
+          ],
+          [
+            157,
+            383
+          ],
+          [
+            158,
+            363
+          ]
+        ]
+      },
+      {
+        "id": "window_4",
+        "area": 281.0,
+        "perimeter": 112.12519905363396,
+        "bounds": {
+          "left": 26.0,
+          "top": 335.0,
+          "right": 63.0,
+          "bottom": 356.0,
+          "width": 37.0,
+          "height": 21.0
+        },
+        "orientation": "horizontal",
+        "vertices": 9,
+        "polygon": [
+          [
+            26,
+            335
+          ],
+          [
+            26,
+            348
+          ],
+          [
+            33,
+            350
+          ],
+          [
+            33,
+            356
+          ],
+          [
+            63,
+            355
+          ],
+          [
+            63,
+            349
+          ],
+          [
+            34,
+            349
+          ],
+          [
+            32,
+            347
+          ],
+          [
+            32,
+            335
+          ]
+        ]
+      },
+      {
+        "id": "window_5",
+        "area": 557.5,
+        "perimeter": 209.67661908732947,
+        "bounds": {
+          "left": 376.0,
+          "top": 328.0,
+          "right": 413.0,
+          "bottom": 397.0,
+          "width": 37.0,
+          "height": 69.0
+        },
+        "orientation": "vertical",
+        "vertices": 9,
+        "polygon": [
+          [
+            413,
+            328
+          ],
+          [
+            407,
+            328
+          ],
+          [
+            407,
+            389
+          ],
+          [
+            404,
+            391
+          ],
+          [
+            376,
+            391
+          ],
+          [
+            376,
+            397
+          ],
+          [
+            406,
+            397
+          ],
+          [
+            406,
+            391
+          ],
+          [
+            413,
+            390
+          ]
+        ]
+      },
+      {
+        "id": "window_6",
+        "area": 94.5,
+        "perimeter": 41.071067811865476,
+        "bounds": {
+          "left": 438.0,
+          "top": 283.0,
+          "right": 452.0,
+          "bottom": 290.0,
+          "width": 14.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            438,
+            283
+          ],
+          [
+            439,
+            290
+          ],
+          [
+            452,
+            290
+          ],
+          [
+            452,
+            283
+          ]
+        ]
+      },
+      {
+        "id": "window_7",
+        "area": 87.5,
+        "perimeter": 39.071067811865476,
+        "bounds": {
+          "left": 417.0,
+          "top": 283.0,
+          "right": 430.0,
+          "bottom": 290.0,
+          "width": 13.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            417,
+            283
+          ],
+          [
+            418,
+            290
+          ],
+          [
+            430,
+            290
+          ],
+          [
+            430,
+            283
+          ]
+        ]
+      },
+      {
+        "id": "window_8",
+        "area": 81.0,
+        "perimeter": 39.08276253029822,
+        "bounds": {
+          "left": 26.0,
+          "top": 265.0,
+          "right": 32.0,
+          "bottom": 279.0,
+          "width": 6.0,
+          "height": 14.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            26,
+            265
+          ],
+          [
+            26,
+            279
+          ],
+          [
+            32,
+            278
+          ],
+          [
+            32,
+            265
+          ]
+        ]
+      },
+      {
+        "id": "window_9",
+        "area": 71.5,
+        "perimeter": 37.0384048104053,
+        "bounds": {
+          "left": 26.0,
+          "top": 216.0,
+          "right": 32.0,
+          "bottom": 229.0,
+          "width": 6.0,
+          "height": 13.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            26,
+            216
+          ],
+          [
+            26,
+            229
+          ],
+          [
+            31,
+            229
+          ],
+          [
+            32,
+            216
+          ]
+        ]
+      },
+      {
+        "id": "window_10",
+        "area": 178.5,
+        "perimeter": 65.07106781186548,
+        "bounds": {
+          "left": 401.0,
+          "top": 172.0,
+          "right": 427.0,
+          "bottom": 179.0,
+          "width": 26.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            401,
+            179
+          ],
+          [
+            426,
+            179
+          ],
+          [
+            427,
+            172
+          ],
+          [
+            401,
+            172
+          ]
+        ]
+      },
+      {
+        "id": "window_11",
+        "area": 182.0,
+        "perimeter": 66.0,
+        "bounds": {
+          "left": 280.0,
+          "top": 172.0,
+          "right": 306.0,
+          "bottom": 179.0,
+          "width": 26.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            280,
+            172
+          ],
+          [
+            280,
+            179
+          ],
+          [
+            306,
+            179
+          ],
+          [
+            306,
+            172
+          ]
+        ]
+      },
+      {
+        "id": "window_12",
+        "area": 300.5,
+        "perimeter": 109.31851469968582,
+        "bounds": {
+          "left": 238.0,
+          "top": 147.0,
+          "right": 274.0,
+          "bottom": 167.0,
+          "width": 36.0,
+          "height": 20.0
+        },
+        "orientation": "horizontal",
+        "vertices": 8,
+        "polygon": [
+          [
+            238,
+            147
+          ],
+          [
+            238,
+            154
+          ],
+          [
+            266,
+            154
+          ],
+          [
+            267,
+            167
+          ],
+          [
+            274,
+            167
+          ],
+          [
+            274,
+            155
+          ],
+          [
+            267,
+            153
+          ],
+          [
+            267,
+            147
+          ]
+        ]
+      },
+      {
+        "id": "window_13",
+        "area": 301.0,
+        "perimeter": 100.0,
+        "bounds": {
+          "left": 128.0,
+          "top": 147.0,
+          "right": 171.0,
+          "bottom": 154.0,
+          "width": 43.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            128,
+            147
+          ],
+          [
+            128,
+            154
+          ],
+          [
+            171,
+            154
+          ],
+          [
+            171,
+            147
+          ]
+        ]
+      },
+      {
+        "id": "window_14",
+        "area": 280.5,
+        "perimeter": 109.89949493661166,
+        "bounds": {
+          "left": 26.0,
+          "top": 147.0,
+          "right": 63.0,
+          "bottom": 166.0,
+          "width": 37.0,
+          "height": 19.0
+        },
+        "orientation": "horizontal",
+        "vertices": 9,
+        "polygon": [
+          [
+            26,
+            166
+          ],
+          [
+            32,
+            166
+          ],
+          [
+            32,
+            156
+          ],
+          [
+            34,
+            154
+          ],
+          [
+            63,
+            154
+          ],
+          [
+            63,
+            147
+          ],
+          [
+            33,
+            147
+          ],
+          [
+            33,
+            154
+          ],
+          [
+            26,
+            155
+          ]
+        ]
+      }
+    ],
+    "doors": [
+      {
+        "id": "door_0",
+        "area": 196.0,
+        "perimeter": 70.0,
+        "bounds": {
+          "left": 108.0,
+          "top": 349.0,
+          "right": 136.0,
+          "bottom": 356.0,
+          "width": 28.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            108,
+            349
+          ],
+          [
+            108,
+            356
+          ],
+          [
+            136,
+            356
+          ],
+          [
+            136,
+            349
+          ]
+        ]
+      },
+      {
+        "id": "door_1",
+        "area": 88.5,
+        "perimeter": 65.16227766016839,
+        "bounds": {
+          "left": 107.0,
+          "top": 311.0,
+          "right": 137.0,
+          "bottom": 314.0,
+          "width": 30.0,
+          "height": 3.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            107,
+            314
+          ],
+          [
+            137,
+            314
+          ],
+          [
+            137,
+            311
+          ],
+          [
+            108,
+            311
+          ]
+        ]
+      },
+      {
+        "id": "door_2",
+        "area": 108.0,
+        "perimeter": 48.0,
+        "bounds": {
+          "left": 407.0,
+          "top": 299.0,
+          "right": 413.0,
+          "bottom": 317.0,
+          "width": 6.0,
+          "height": 18.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            407,
+            299
+          ],
+          [
+            407,
+            317
+          ],
+          [
+            413,
+            317
+          ],
+          [
+            413,
+            299
+          ]
+        ]
+      },
+      {
+        "id": "door_3",
+        "area": 54.0,
+        "perimeter": 42.0,
+        "bounds": {
+          "left": 100.0,
+          "top": 291.0,
+          "right": 103.0,
+          "bottom": 309.0,
+          "width": 3.0,
+          "height": 18.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            100,
+            291
+          ],
+          [
+            100,
+            309
+          ],
+          [
+            103,
+            309
+          ],
+          [
+            103,
+            291
+          ]
+        ]
+      },
+      {
+        "id": "door_4",
+        "area": 48.0,
+        "perimeter": 38.0,
+        "bounds": {
+          "left": 431.0,
+          "top": 265.0,
+          "right": 434.0,
+          "bottom": 281.0,
+          "width": 3.0,
+          "height": 16.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            431,
+            265
+          ],
+          [
+            431,
+            281
+          ],
+          [
+            434,
+            281
+          ],
+          [
+            434,
+            265
+          ]
+        ]
+      },
+      {
+        "id": "door_5",
+        "area": 54.0,
+        "perimeter": 42.0,
+        "bounds": {
+          "left": 203.0,
+          "top": 264.0,
+          "right": 221.0,
+          "bottom": 267.0,
+          "width": 18.0,
+          "height": 3.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            203,
+            264
+          ],
+          [
+            203,
+            267
+          ],
+          [
+            221,
+            267
+          ],
+          [
+            221,
+            264
+          ]
+        ]
+      },
+      {
+        "id": "door_6",
+        "area": 57.0,
+        "perimeter": 44.0,
+        "bounds": {
+          "left": 100.0,
+          "top": 259.0,
+          "right": 103.0,
+          "bottom": 278.0,
+          "width": 3.0,
+          "height": 19.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            100,
+            259
+          ],
+          [
+            100,
+            278
+          ],
+          [
+            103,
+            278
+          ],
+          [
+            103,
+            259
+          ]
+        ]
+      },
+      {
+        "id": "door_7",
+        "area": 45.0,
+        "perimeter": 36.0,
+        "bounds": {
+          "left": 199.0,
+          "top": 235.0,
+          "right": 202.0,
+          "bottom": 250.0,
+          "width": 3.0,
+          "height": 15.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            199,
+            235
+          ],
+          [
+            199,
+            250
+          ],
+          [
+            202,
+            250
+          ],
+          [
+            202,
+            235
+          ]
+        ]
+      },
+      {
+        "id": "door_8",
+        "area": 57.0,
+        "perimeter": 44.0,
+        "bounds": {
+          "left": 100.0,
+          "top": 223.0,
+          "right": 103.0,
+          "bottom": 242.0,
+          "width": 3.0,
+          "height": 19.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            100,
+            223
+          ],
+          [
+            100,
+            242
+          ],
+          [
+            103,
+            242
+          ],
+          [
+            103,
+            223
+          ]
+        ]
+      },
+      {
+        "id": "door_9",
+        "area": 54.0,
+        "perimeter": 42.0,
+        "bounds": {
+          "left": 436.0,
+          "top": 221.0,
+          "right": 454.0,
+          "bottom": 224.0,
+          "width": 18.0,
+          "height": 3.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            436,
+            221
+          ],
+          [
+            436,
+            224
+          ],
+          [
+            454,
+            224
+          ],
+          [
+            454,
+            221
+          ]
+        ]
+      },
+      {
+        "id": "door_10",
+        "area": 45.0,
+        "perimeter": 36.0,
+        "bounds": {
+          "left": 364.0,
+          "top": 221.0,
+          "right": 379.0,
+          "bottom": 224.0,
+          "width": 15.0,
+          "height": 3.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            364,
+            221
+          ],
+          [
+            364,
+            224
+          ],
+          [
+            379,
+            224
+          ],
+          [
+            379,
+            221
+          ]
+        ]
+      },
+      {
+        "id": "door_11",
+        "area": 47.5,
+        "perimeter": 43.02629759044045,
+        "bounds": {
+          "left": 119.0,
+          "top": 218.0,
+          "right": 138.0,
+          "bottom": 221.0,
+          "width": 19.0,
+          "height": 3.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            119,
+            218
+          ],
+          [
+            119,
+            221
+          ],
+          [
+            138,
+            220
+          ],
+          [
+            138,
+            218
+          ]
+        ]
+      },
+      {
+        "id": "door_12",
+        "area": 126.0,
+        "perimeter": 50.0,
+        "bounds": {
+          "left": 469.0,
+          "top": 195.0,
+          "right": 476.0,
+          "bottom": 213.0,
+          "width": 7.0,
+          "height": 18.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            469,
+            195
+          ],
+          [
+            469,
+            213
+          ],
+          [
+            476,
+            213
+          ],
+          [
+            476,
+            195
+          ]
+        ]
+      },
+      {
+        "id": "door_13",
+        "area": 54.0,
+        "perimeter": 42.0,
+        "bounds": {
+          "left": 353.0,
+          "top": 195.0,
+          "right": 356.0,
+          "bottom": 213.0,
+          "width": 3.0,
+          "height": 18.0
+        },
+        "orientation": "vertical",
+        "vertices": 4,
+        "polygon": [
+          [
+            353,
+            195
+          ],
+          [
+            353,
+            213
+          ],
+          [
+            356,
+            213
+          ],
+          [
+            356,
+            195
+          ]
+        ]
+      },
+      {
+        "id": "door_14",
+        "area": 133.0,
+        "perimeter": 52.0,
+        "bounds": {
+          "left": 332.0,
+          "top": 172.0,
+          "right": 351.0,
+          "bottom": 179.0,
+          "width": 19.0,
+          "height": 7.0
+        },
+        "orientation": "horizontal",
+        "vertices": 4,
+        "polygon": [
+          [
+            332,
+            172
+          ],
+          [
+            332,
+            179
+          ],
+          [
+            351,
+            179
+          ],
+          [
+            351,
+            172
+          ]
+        ]
+      }
+    ]
+  }
+}

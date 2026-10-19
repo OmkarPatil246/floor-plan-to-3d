@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Recommendations - Loading...</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      padding: 60px 40px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 30px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    h1 {
+      margin: 0 0 15px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      margin: 0 0 10px;
+      opacity: 0.95;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .back-btn {
+      margin-top: 25px;
+      padding: 14px 32px;
+      background: white;
+      color: #059669;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .back-btn:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+
+    .back-btn:active {
+      transform: translateY(0);
+    }
+
+    .info {
+      margin-top: 15px;
+      font-size: 13px;
+      opacity: 0.8;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1>AI Recommendations</h1>
+    <p id="message">Preparing your floor plan analysis...</p>
+    <div class="status" id="status">Checking data...</div>
+    <button class="back-btn" onclick="window.close()" id="backBtn" style="display: none;">
+      ← Back to 3D Viewer
+    </button>
+    <p class="info" id="info"></p>
+  </div>
+
+  <script>
+    const messageEl = document.getElementById('message');
+    const statusEl = document.getElementById('status');
+    const spinnerEl = document.getElementById('spinner');
+    const backBtn = document.getElementById('backBtn');
+    const infoEl = document.getElementById('info');
+
+    function showError(message, detail = '') {
+      spinnerEl.style.display = 'none';
+      messageEl.textContent = '❌ Error';
+      statusEl.textContent = message;
+      statusEl.classList.add('error');
+      backBtn.style.display = 'inline-block';
+      if (detail) {
+        infoEl.textContent = detail;
+        infoEl.style.color = 'rgba(255,255,255,0.7)';
+      }
+    }
+
+    function updateStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    async function loadRecommendations() {
+      try {
+        // Check if data exists in sessionStorage
+        updateStatus('Step 1/4: Checking floor plan data...');
+        const floorplanData = sessionStorage.getItem('floorplan_data');
+        
+        if (!floorplanData) {
+          showError(
+            'No floor plan data found',
+            'Please process a floor plan in the main viewer first'
+          );
+          return;
+        }
+
+        const data = JSON.parse(floorplanData);
+        console.log('Floor plan data retrieved:', data);
+
+        updateStatus('Step 2/4: Floor plan data loaded successfully');
+        await new Promise(resolve => setTimeout(resolve, 400));
+
+        // Validate data structure
+        if (!data || (!data.rooms && !data.floorPlan)) {
+          showError(
+            'Invalid floor plan data',
+            'The floor plan structure is not recognized. Please try processing it again.'
+          );
+          return;
+        }
+
+        updateStatus('Step 3/4: Checking recommendation service...');
+        
+        // Check if backend is available
+        try {
+          const backendCheck = await fetch('http://localhost:8000/', {
+            method: 'GET',
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (!backendCheck.ok) {
+            showError(
+              'Recommendation backend not responding',
+              'Please start the backend with START_AI_SYSTEM.bat'
+            );
+            return;
+          }
+          
+          console.log('Backend is running');
+        } catch (backendError) {
+          console.error('Backend check failed:', backendError);
+          showError(
+            'Cannot connect to recommendation backend',
+            'Please ensure the recommendation backend is running on port 8000. Start it with START_AI_SYSTEM.bat'
+          );
+          return;
+        }
+
+        updateStatus('Step 4/4: Redirecting to recommendation system...');
+
+        // The Recommendation UI is a separate app (Vite dev server on :5173 by
+        // default). It can be overridden with ?rec=<url> or by defining
+        // window.RECOMMENDATION_FRONTEND_URL before this script runs.
+        const override = new URLSearchParams(window.location.search).get('rec')
+          || window.RECOMMENDATION_FRONTEND_URL;
+        const recFrontend = (
+          override || `${window.location.protocol}//${window.location.hostname}:5173/`
+        ).replace(/\/+$/, '');
+
+        // Pass the floor plan through the URL hash so it survives the
+        // cross-origin redirect (sessionStorage is origin-scoped).
+        let plan = data;
+        if (data.floorPlan && Array.isArray(data.floorPlan.rooms)) {
+          plan = { rooms: data.floorPlan.rooms };
+        }
+        
+        // Also check if data has rooms directly
+        if (!plan.rooms && data.rooms && Array.isArray(data.rooms)) {
+          plan = { rooms: data.rooms };
+        }
+        
+        // Final validation
+        if (!plan.rooms || !Array.isArray(plan.rooms) || plan.rooms.length === 0) {
+          showError(
+            'No rooms found in floor plan',
+            'The floor plan must contain at least one room. Please process a valid floor plan.'
+          );
+          return;
+        }
+
+        const recommendationUrl = `${recFrontend}/#floorplan=${encodeURIComponent(JSON.stringify(plan))}`;
+
+        console.log('Attempting to redirect to:', recFrontend);
+        console.log('Number of rooms:', plan.rooms.length);
+        infoEl.textContent = `Target: ${recFrontend} | Rooms: ${plan.rooms.length}`;
+
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        // Keep a same-origin copy in case the UI is served from this origin.
+        sessionStorage.setItem('floorplan_data', JSON.stringify(plan));
+
+        // Check if frontend is accessible before redirecting
+        try {
+          const frontendCheck = await fetch(recFrontend, {
+            method: 'GET',
+            mode: 'no-cors', // Allow checking even if CORS is not set
+            signal: AbortSignal.timeout(5000)
+          });
+          console.log('Frontend check completed');
+        } catch (frontendError) {
+          console.warn('Frontend check failed, but will try redirect anyway:', frontendError);
+          showError(
+            'Recommendation frontend may not be running',
+            'Please ensure the frontend is running on port 5173. Start it with START_AI_SYSTEM.bat. Click OK to try anyway.',
+            true // allow continue
+          );
+          
+          // Wait for user to click OK
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        // Redirect
+        console.log('Redirecting to:', recommendationUrl);
+        window.location.href = recommendationUrl;
+        
+      } catch (error) {
+        console.error('Error loading recommendations:', error);
+        showError(
+          'Failed to load recommendation system',
+          error.message || 'Unknown error occurred'
+        );
+      }
+    }
+
+    // Start the process
+    loadRecommendations();
+  </script>
+</body>
+</html>
