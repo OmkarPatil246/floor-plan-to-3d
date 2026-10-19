@@ -8,7 +8,7 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
-# Node / Frontend
+# Node / Frontend dependencies
 node_modules/
 **/node_modules/
 npm-debug.log*
@@ -39,14 +39,39 @@ env/
 Thumbs.db
 desktop.ini
 
-# Data and large model weights (GitHub blocks files > 100MB)
+# Data directory (keep directory and documentation tracked)
 data/*
 !data/README.md
-checkpoints/
-runs/
-weights/
-**/weights/
+!data/.gitkeep
+
+# Checkpoints directory (keep directory tracked)
+checkpoints/*
+!checkpoints/README.md
+!checkpoints/.gitkeep
+
+# Training runs directory (keep directory tracked)
+runs/*
+!runs/README.md
+!runs/.gitkeep
+
+# Model weights directory (keep directories and READMEs tracked, ignore heavy weights)
+weights/*
+!weights/README.md
+!weights/.gitkeep
+!weights/recommendation_model/
+weights/recommendation_model/*
+!weights/recommendation_model/README.md
+!weights/recommendation_model/.gitkeep
+
+# Output images directory (keep directory tracked)
+outputs/images/*
+!outputs/images/.gitkeep
+!outputs/images/README.md
+
+# WandB & experiment caches
 wandb/
+
+# Machine learning model binaries (GitHub blocks files > 100MB)
 *.ckpt
 *.pt
 *.pth
