@@ -1,0 +1,26 @@
+{
+  "name": "vr-box-mode-system",
+  "version": "1.0.0",
+  "description": "VR Box Mode with dual-device screen streaming and gesture control",
+  "main": "vr-server.js",
+  "scripts": {
+    "start": "node vr-server.js",
+    "dev": "nodemon vr-server.js"
+  },
+  "keywords": [
+    "vr",
+    "webrtc",
+    "3d",
+    "gesture-control",
+    "cardboard"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

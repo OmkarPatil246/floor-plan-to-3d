@@ -1,0 +1,189 @@
+═══════════════════════════════════════════════════════════════
+    ✅ YOUR PROJECT IS RUNNING WITH PUBLIC ACCESS! ✅
+═══════════════════════════════════════════════════════════════
+
+📱 COPY THIS URL TO YOUR PHONE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    https://vacate-exposable-avid.ngrok-free.dev
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Works from ANY network, ANYWHERE in the world! 🌍
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+📋 HOW TO USE ON YOUR PHONE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Step 1: Copy the URL
+  ────────────────────
+  https://vacate-exposable-avid.ngrok-free.dev
+
+  Step 2: Open on Phone
+  ─────────────────────
+  • Open Chrome or Safari browser
+  • Paste the URL
+  • Press Enter/Go
+
+  Step 3: Click "Visit Site"
+  ──────────────────────────
+  • You'll see an ngrok warning page
+  • Click "Visit Site" button
+  • This is normal for free accounts!
+
+  Step 4: Use the App!
+  ────────────────────
+  • Upload floor plan images
+  • Wait for AI processing
+  • View 3D models
+  • Get recommendations
+
+
+✅ WHAT'S RUNNING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Service              Port    Status      Public Access
+  ──────────────────────────────────────────────────────────
+  🎨 Main Server       8080    ✅ Running  ✅ Via ngrok
+  👓 VR Server         8888    ✅ Running  📶 Local only
+  🔧 Backend API       8000    ✅ Running  ✅ Via main server
+  💡 Recommendations   5173    ✅ Running  ✅ Via main server
+
+
+⚠️  IMPORTANT - FREE NGROK LIMITATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Free ngrok accounts allow ONLY 1 active tunnel at a time.
+
+  Current Setup:
+  ──────────────
+  ✅ Main Viewer:  PUBLIC (via ngrok)
+  📶 VR Viewer:    LOCAL NETWORK ONLY
+
+  For VR Modes on Phone (Same WiFi):
+  ──────────────────────────────────
+  http://10.141.113.231:8888/vr-walk-mode.html
+  http://10.141.113.231:8888/vr-mobile.html
+  http://10.141.113.231:8888/vr-viewer.html
+
+
+💡 SOLUTIONS FOR MULTIPLE PUBLIC URLs:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Option 1: Local Network (FREE)
+  ──────────────────────────────
+  • Use local IPs when phone on same WiFi
+  • Much faster than public tunnels
+  • No limitations
+  • All features available
+
+  Option 2: Upgrade Ngrok ($8/month)
+  ──────────────────────────────────
+  • Allows 3 simultaneous tunnels
+  • No "Visit Site" button
+  • Custom domain option
+  • Better performance
+
+  Option 3: Switch Tunnels as Needed (FREE)
+  ─────────────────────────────────────────
+  • Stop current ngrok
+  • Start new tunnel for desired service
+  • Get new URL each time
+
+
+📶 LOCAL NETWORK URLs (Same WiFi Only):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Main Viewer:       http://10.141.113.231:8080
+  VR Viewer:         http://10.141.113.231:8888
+  VR Walk Mode:      http://10.141.113.231:8888/vr-walk-mode.html
+  VR Mobile:         http://10.141.113.231:8888/vr-mobile.html
+  VR Viewer:         http://10.141.113.231:8888/vr-viewer.html
+  Recommendations:   http://10.141.113.231:5173
+
+
+🎮 RECOMMENDED WORKFLOW:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  For Remote Access (Phone NOT on same WiFi):
+  ───────────────────────────────────────────
+  Use: https://vacate-exposable-avid.ngrok-free.dev
+  
+  Features:
+  • ✅ Upload floor plans
+  • ✅ AI processing
+  • ✅ View 3D models
+  • ✅ Get recommendations
+  • ✅ Core functionality
+
+  For VR Features:
+  ────────────────
+  Use: http://10.141.113.231:8888/vr-walk-mode.html
+  (Requires same WiFi)
+  
+  Features:
+  • ✅ VR walk mode
+  • ✅ VR mobile mode
+  • ✅ VR viewer
+  • ✅ 3D asset placement
+  • ✅ Gesture controls
+
+
+🔧 TROUBLESHOOTING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Can't load page?
+  ────────────────
+  1. Check localhost: http://localhost:8080
+  2. If that works, restart ngrok
+  3. Check ngrok dashboard: http://localhost:4040
+
+  "Visit Site" button not working?
+  ────────────────────────────────
+  • Try different browser (Chrome recommended)
+  • Clear cache and try again
+  • Disable ad blockers
+
+  Need faster access?
+  ───────────────────
+  • Use local network URLs (10x faster!)
+  • Only works on same WiFi
+  • No ngrok warning page
+
+
+📞 QUICK REFERENCE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Public URL (Phone - Any Network):
+  https://vacate-exposable-avid.ngrok-free.dev
+
+  Local URL (Phone - Same WiFi):
+  http://10.141.113.231:8080
+
+  VR Walk Mode (Same WiFi):
+  http://10.141.113.231:8888/vr-walk-mode.html
+
+  Ngrok Dashboard:
+  http://localhost:4040
+
+  Stop All Services:
+  Close all terminal windows
+
+  Restart with Ngrok:
+  Run: START_WITH_NGROK.bat
+
+
+💾 SAVE THIS INFORMATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  • Bookmark the public URL on your phone
+  • Save this file for reference
+  • URL changes each restart (free account)
+  • Get new URL from: http://localhost:4040
+
+
+═══════════════════════════════════════════════════════════════
+🎉 YOUR PROJECT IS READY FOR PHONE ACCESS! 🎉
+═══════════════════════════════════════════════════════════════
+
+Copy the public URL to your phone and start building! 🏗️📱✨

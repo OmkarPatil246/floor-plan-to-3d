@@ -1,0 +1,237 @@
+═══════════════════════════════════════════════════════════════
+    📱 ALL PUBLIC ACCESS URLs - MAIN & VR MODES 📱
+═══════════════════════════════════════════════════════════════
+
+1️⃣  MAIN FLOOR PLAN VIEWER (Port 8080)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  🌍 PUBLIC URL:
+  https://chatty-dodos-brake.loca.lt
+
+  📋 Use this for:
+  • Upload floor plan images
+  • AI processing and detection
+  • Get AI furniture recommendations
+  • View processed results
+  • Access recommendation system
+
+
+2️⃣  VR VIEWER & 3D MODELS (Port 8888)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  🌍 PUBLIC URL:
+  https://thin-trees-open.loca.lt
+
+  📋 Use this for:
+  • VR walk mode
+  • 3D asset viewing
+  • VR mobile mode
+  • Interactive 3D models
+  • Gesture controls
+
+
+🎯 VR MODE SPECIFIC URLs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  🚶 VR Walk Mode (Most Popular!):
+  https://thin-trees-open.loca.lt/vr-walk-mode.html
+
+  📱 VR Mobile:
+  https://thin-trees-open.loca.lt/vr-mobile.html
+
+  👓 VR Viewer:
+  https://thin-trees-open.loca.lt/vr-viewer.html
+
+  📄 Main Viewer Index:
+  https://thin-trees-open.loca.lt/index.html
+
+
+📶 LOCAL NETWORK URLs (Same WiFi - Faster)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Main Services:
+  ─────────────────────────────────────
+  Main Viewer:       http://10.141.113.231:8080
+  VR Viewer:         http://10.141.113.231:8888
+  Recommendations:   http://10.141.113.231:5173
+  Backend API:       http://10.141.113.231:8000
+
+  VR Modes (Local):
+  ─────────────────────────────────────
+  VR Walk Mode:      http://10.141.113.231:8888/vr-walk-mode.html
+  VR Mobile:         http://10.141.113.231:8888/vr-mobile.html
+  VR Viewer:         http://10.141.113.231:8888/vr-viewer.html
+  Main Index:        http://10.141.113.231:8888/index.html
+
+
+🎮 WHICH ONE TO USE?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  For Floor Plan Processing:
+  ──────────────────────────
+  Use: https://chatty-dodos-brake.loca.lt
+
+  1. Upload your floor plan image
+  2. Wait for AI processing
+  3. View detected walls, doors, windows
+  4. Get AI furniture recommendations
+
+  For VR Experience:
+  ──────────────────
+  Use: https://thin-trees-open.loca.lt/vr-walk-mode.html
+
+  1. Load a processed 3D model
+  2. Walk through in VR mode
+  3. Place 3D furniture and objects
+  4. Explore in immersive mode
+
+
+📱 QUICK PHONE SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Option 1: Complete Workflow
+  ────────────────────────────
+  1. Start with Main Viewer:
+     https://chatty-dodos-brake.loca.lt
+     → Upload and process floor plan
+
+  2. Then go to VR Mode:
+     https://thin-trees-open.loca.lt/vr-walk-mode.html
+     → Load the processed model
+     → Explore in VR!
+
+  Option 2: Just VR Demo
+  ──────────────────────
+  Go directly to VR:
+  https://thin-trees-open.loca.lt/vr-walk-mode.html
+  → Load demo or existing models
+  → Start exploring!
+
+
+✅ SERVICES STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Service              Port    Status      Public URL
+  ──────────────────────────────────────────────────────────
+  🎨 Main Viewer       8080    ✅ Running  chatty-dodos-brake.loca.lt
+  👓 VR Viewer         8888    ✅ Running  thin-trees-open.loca.lt
+  🔧 Backend API       8000    ✅ Running  (Via main viewer)
+  💡 Recommendations   5173    ✅ Running  (Via main viewer)
+
+
+🌟 RECOMMENDED WORKFLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Step 1: Process Floor Plan (Main Viewer)
+  ─────────────────────────────────────────
+  https://chatty-dodos-brake.loca.lt
+  • Upload floor plan
+  • Wait for processing
+  • View results
+
+  Step 2: Get Recommendations (Same page)
+  ───────────────────────────────────────
+  • Click "Get AI Recommendations"
+  • View furniture suggestions
+  • See room analysis
+
+  Step 3: Experience in VR (VR Viewer)
+  ────────────────────────────────────
+  https://thin-trees-open.loca.lt/vr-walk-mode.html
+  • Load your processed model
+  • Walk through in VR
+  • Place furniture
+  • Explore!
+
+
+🎯 URL QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Copy These to Your Phone:
+
+  📱 Main App:
+  https://chatty-dodos-brake.loca.lt
+
+  📱 VR Walk Mode:
+  https://thin-trees-open.loca.lt/vr-walk-mode.html
+
+  📱 VR Mobile:
+  https://thin-trees-open.loca.lt/vr-mobile.html
+
+
+💡 PRO TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  For Best VR Experience:
+
+  1. Use VR Walk Mode URL directly
+     • Best for mobile VR
+     • Optimized controls
+     • Smooth navigation
+
+  2. Portrait/Landscape:
+     • VR modes work in both
+     • Landscape for immersive view
+
+  3. Gesture Controls:
+     • Tap to place objects
+     • Swipe to rotate
+     • Pinch to zoom
+
+  4. Use Same WiFi URLs:
+     • Much faster for VR
+     • Less lag, better experience
+     • Only works on same network
+
+
+⚠️  IMPORTANT NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Keep All Windows Open!
+  • Main Server (Port 8080)
+  • VR Viewer Server (Port 8888)
+  • Both Localtunnel windows
+  • Backend and Frontend services
+
+  First Time Warning:
+  • Localtunnel shows a security page
+  • Click "Continue" or "Click to Continue"
+  • You only see this once per URL
+
+  URL Persistence:
+  • These URLs are temporary
+  • They change each time you restart
+  • Free service - no permanent URLs
+
+
+🔧 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  VR Mode Not Loading?
+  ────────────────────
+  1. Check VR server: http://localhost:8888
+  2. Try direct file URLs with /vr-walk-mode.html
+  3. Clear browser cache and refresh
+
+  3D Model Not Showing?
+  ─────────────────────
+  1. Process floor plan first in main viewer
+  2. Check model format (GLB/GLTF)
+  3. Verify viewer folder has models
+
+
+═══════════════════════════════════════════════════════════════
+Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+═══════════════════════════════════════════════════════════════
+
+🎉 YOU'RE ALL SET!
+
+✅ 2 Public URLs active
+✅ Main viewer for floor plans
+✅ VR viewer for 3D/VR modes
+✅ All services running
+✅ Accessible worldwide!
+
+Start with the Main Viewer, then explore VR modes! 🚀
+
+Happy Building & Exploring! 🏗️👓✨

@@ -1,0 +1,323 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🤌 HAND GESTURE CONTROL CHEAT SHEET                       ║
+║                          3D Furniture Placement System                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ BASIC GESTURES                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+🖐️  OPEN HAND (All 5 fingers spread)
+    ├─ Action: Move cursor around
+    ├─ Use: Navigate, hover over objects
+    └─ Cursor: Cyan ring follows index fingertip
+
+👆 POINT (Only index finger up)
+    ├─ Action: Precise cursor control
+    ├─ Use: Aim at small objects, fine control
+    └─ Cursor: Yellow ring, more stable
+
+🤏 PINCH (Thumb + index tips touch)
+    ├─ Action: SELECT & GRAB
+    ├─ Priority 1: Grab placed furniture ⭐ NEW!
+    ├─ Priority 2: Select from hotbar
+    ├─ Priority 3: Pull corner handle to resize
+    └─ Cursor: Green ring when pinching
+
+✌️  PEACE SIGN (Index + middle up)
+    ├─ Action: DELETE selected furniture
+    ├─ Hold: 0.7 seconds
+    └─ Visual: Orange progress arc fills
+
+🖖 THREE FINGERS (Index + middle + ring)
+    ├─ Action: DUPLICATE selected furniture
+    ├─ Hold: 0.7 seconds
+    └─ Visual: Orange progress arc fills
+
+✊ FIST (All fingers closed)
+    ├─ Action: CANCEL / Deselect
+    ├─ Cooldown: 500ms
+    └─ Toast: "FIST - CANCEL!"
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ADVANCED GESTURES                                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+🤏 + 🤏 TWO-HAND PINCH (Both hands pinching)
+    ├─ Spread apart: Scale UP ⬆️
+    ├─ Bring together: Scale DOWN ⬇️
+    ├─ Twist hands: Rotate object 🔄
+    └─ Visual: Purple line connects hands
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ WORKFLOW: SELECT & MOVE PLACED FURNITURE (MAIN USE!)                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Point hand at furniture on floor
+        👉 🪑
+        
+Step 2: PINCH to grab it
+        🤏
+        
+Step 3: Furniture selected! (Blue box appears)
+        [○]────[○]
+         │  🪑  │  ← Cyan bounding box
+        [○]────[○]
+        
+Step 4: Keep pinch held, move hand to drag
+        🤏 ➜ 🪑 moves
+        
+Step 5: Release pinch to drop
+        🖐️ → 🪑 stays in place
+
+Toast: "✋ Grabbed: Chair • Drag to move"
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ WORKFLOW: PLACE NEW FURNITURE FROM INVENTORY                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Point hand at hotbar slot (left sidebar)
+        ┌─────┐
+        │ 1 🪑│ ← Point here
+        ├─────┤
+        
+Step 2: PINCH inside the slot
+        🤏
+        
+Step 3: Ghost preview appears
+        👻 Cyan wireframe cube
+        
+Step 4: Drag hand to floor location
+        🤏 ➜ 👻 follows
+        
+Step 5: Release pinch to place
+        🖐️ → 🪑 appears on floor
+
+Toast: "📦 Selected Chair • Drag to floor to place"
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ SELECTION PRIORITY (WHEN YOU PINCH)                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Priority 1: Corner Handles (if object already selected)
+            🔧 [○]  ← Resize by pulling handles
+            
+Priority 2: Placed 3D Furniture ⭐ NEW PRIORITY!
+            🪑 🛋️ 🗄️ ← Furniture on floor
+            
+Priority 3: Hotbar Slots (only if cursor strictly inside)
+            ┌─────┐
+            │ 1 🪑│ ← Must be inside bounds
+            └─────┘
+            
+Priority 4: Empty Space (deselect current object)
+            · · · ← Nothing here
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ DELETE FURNITURE (TWO METHODS)                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Method A: Peace Sign
+┌─────────────────────────────────────────────────────────┐
+│ 1. Select furniture (pinch it)                          │
+│ 2. Make ✌️ PEACE SIGN (index + middle up)              │
+│ 3. Hold for 0.7 seconds                                 │
+│ 4. Orange arc fills up → 💥 DELETED!                   │
+└─────────────────────────────────────────────────────────┘
+
+Method B: Drag to Dustbin
+┌─────────────────────────────────────────────────────────┐
+│ 1. Grab furniture (pinch)                               │
+│ 2. Drag toward 🗑️ dustbin (bottom-right corner)        │
+│ 3. Dustbin glows RED when over it                       │
+│ 4. Release pinch → 💥 DELETED! (crunch animation)      │
+└─────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ RESIZE FURNITURE                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Select furniture (pinch it)
+        🪑 → Blue box + 8 corner handles appear
+        
+Step 2: Point at corner handle (turns yellow)
+        [○] ← Yellow when hovered
+        
+Step 3: PINCH the handle
+        🤏
+        
+Step 4: Pull away = Scale UP, Pull in = Scale DOWN
+        🔧 Pull ↔️
+        
+Step 5: Release to confirm
+        🖐️
+
+Range: 0.2x to 5.0x (in 0.05 steps)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ DUPLICATE FURNITURE                                                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Select furniture (pinch it)
+        🪑 selected
+        
+Step 2: Make 🖖 THREE FINGERS gesture
+        Index + Middle + Ring up
+        
+Step 3: Hold for 0.7 seconds
+        Orange arc fills
+        
+Step 4: 💥 Copy created!
+        🪑 🪑 ← Two chairs now
+
+Toast: "📋 Duplicated: Chair"
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ SCALE & ROTATE (TWO HANDS)                                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Step 1: Select furniture (pinch it)
+        🪑 selected
+        
+Step 2: Both hands PINCH simultaneously
+        🤏        🤏
+        
+Step 3: Spread/Twist hands:
+        ├─ Spread apart 📏 → Scale UP
+        ├─ Bring together 📏 → Scale DOWN
+        └─ Twist 🔄 → Rotate
+        
+Step 4: Release both pinches to stop
+        🖐️       🖐️
+
+Visual: Purple line connects both hands
+Status: "Scale: 1.25x Rotate: 45deg"
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ VISUAL FEEDBACK                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Hand Cursor (Primary):
+    ◯  ← Cyan ring (open hand)
+   ●   ← White dot center
+   
+When Pinching:
+    ◯  ← Green ring (shrinks)
+   ●
+
+Selected Furniture:
+    [○]────[○]
+     │  🪑  │  ← Cyan bounding box
+    [○]────[○]
+    8 corner handles (small cubes)
+
+Ghost Preview:
+    ╔════╗
+    ║ 👻 ║  ← Cyan wireframe
+    ║    ║     40% transparent
+    ╚════╝
+
+Dustbin States:
+    🔴 Normal (red border)
+    🟠 Dragging (glowing orange)
+    🔥 Over bin (bright red + scale 1.15x)
+    💥 Delete success (crunch animation)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ REACH DISTANCE                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Maximum: 12.0 meters
+    
+    You          12m Max Reach
+     👤  ─────────────────────►  🪑
+    
+    ✅ Within Reach: Can interact
+    ❌ Too Far: Walk closer (WASD) or use Orbit View (V)
+
+First-Person: Measured from eye height (1.7m)
+Orbit Mode: Measured from camera position
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ CAMERA MODES                                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+🚶 First-Person (Default) - Press V to toggle
+    ├─ WASD: Walk around
+    ├─ Mouse: Look around (pointer lock)
+    ├─ Shift: Sprint
+    └─ Click screen to lock pointer
+
+🌐 Orbit View - Press V to toggle
+    ├─ Mouse drag: Rotate camera 360°
+    ├─ Scroll wheel: Zoom in/out
+    └─ No pointer lock needed
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TOAST MESSAGES                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+✋ Grabbed: Chair • Drag to move       → Furniture selected
+📦 Selected Sofa • Drag to floor      → Inventory selected
+🔧 Pull corner to resize              → Resize mode active
+🗑️ Over Trash Bin • Release to delete → Hovering dustbin
+💥 Deleted: Table                     → Furniture deleted
+📋 Duplicated: Ottoman                → Copy created
+✊ FIST - CANCEL!                      → Action cancelled
+⚠️ Too far away — walk closer         → Outside 12m reach
+Deselected                            → Nothing selected
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+❌ Can't select furniture?
+    ✅ Walk closer (WASD keys)
+    ✅ Switch to Orbit View (V key)
+    ✅ Point directly at furniture
+    ✅ Check within 12m reach
+
+❌ Hotbar keeps selecting?
+    ✅ Move hand away from left edge
+    ✅ 3D objects now have priority!
+    ✅ Cursor must be INSIDE slot to select
+
+❌ Gesture not detected?
+    ✅ Good lighting required
+    ✅ Keep hand in camera frame
+    ✅ Palm facing camera
+    ✅ Fingers clearly separated
+
+❌ Camera not working?
+    ✅ Click camera icon in address bar
+    ✅ Allow webcam permission
+    ✅ Click retry button in UI
+
+❌ Object won't move?
+    ✅ Check within 12m reach
+    ✅ Keep pinch held while dragging
+    ✅ Make sure not over dustbin
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PRO TIPS 💡                                                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+✨ Use POINT gesture (index only) for precise aiming before pinching
+
+✨ Two-hand mode requires both hands fully visible in webcam
+
+✨ Dustbin has 25px generous margin for easy dropping
+
+✨ Sprint (Shift) for faster movement in First-Person
+
+✨ Orbit View gives easier access to distant furniture
+
+✨ Hold Shift while scaling for finer control (if enabled)
+
+✨ Peace sign and Three fingers have 0.7s hold time for safety
+
+✨ Fist gesture has 500ms cooldown to prevent spam
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                         🎉 ENJOY YOUR 3D FURNITURE GAME! 🎉                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝

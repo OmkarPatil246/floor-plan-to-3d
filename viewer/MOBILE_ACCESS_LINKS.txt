@@ -1,0 +1,101 @@
+================================================================================
+  📱 MOBILE ACCESS LINKS - VR WALK MODE
+================================================================================
+
+Your Computer IP Address: 172.17.128.1
+
+STEP 1: START THE SERVER
+-------------------------
+Run this file on your computer:
+  viewer\START_SERVER.bat
+  
+  OR
+  
+  viewer\START_VR_WALK_MODE.bat
+
+
+STEP 2: CONNECT FROM YOUR ANDROID PHONE
+----------------------------------------
+Make sure your phone is on the SAME WiFi network as your computer!
+
+Then open Chrome browser on your phone and visit:
+
+
+🏠 MAIN VIEWER (Generate 3D Floor Plans):
+   http://172.17.128.1:8000/index.html
+
+
+🥽 VR WALK MODE (Direct Access):
+   http://172.17.128.1:8000/vr-walk-mode.html
+
+
+STEP 3: ENTER VR MODE
+----------------------
+1. On the page, tap "Enter VR" button
+2. Allow motion/orientation permissions when asked
+3. Allow location permission (optional, for GPS modes)
+4. Place phone in VR headset (Google Cardboard)
+5. Walk in place to move forward
+6. Look at doors to open them automatically
+
+
+TROUBLESHOOTING
+---------------
+If links don't work:
+
+1. Check both devices are on SAME WiFi
+2. Disable Windows Firewall temporarily:
+   - Windows Settings > Update & Security > Windows Security
+   - Firewall & network protection > Turn off
+
+3. Try alternative IP (if you have multiple networks):
+   - Run: ipconfig
+   - Look for "IPv4 Address" under your WiFi adapter
+   - Replace 172.17.128.1 with that IP
+
+4. Make sure server is running (green text in command window)
+
+
+QUICK TEST
+----------
+On your computer, try opening:
+  http://localhost:8000/vr-walk-mode.html
+
+If this works, the server is running correctly!
+
+
+================================================================================
+  🎮 CONTROLS IN VR
+================================================================================
+
+Before Entering VR:
+  - Adjust step sensitivity slider
+  - Select movement mode (Hybrid recommended)
+
+In VR Mode:
+  - Look around: Move your head
+  - Walk forward: Walk in place OR touch screen
+  - Open doors: Look at door for 1.5 seconds
+  - Exit VR: Use headset back button or "Exit VR"
+
+
+================================================================================
+  📞 SUPPORT
+================================================================================
+
+Server not starting?
+  - Install Python: https://www.python.org/downloads/
+  - Restart computer after installation
+
+Can't connect from phone?
+  - Check WiFi (must be same network)
+  - Turn off VPN on phone
+  - Try using mobile data and mobile hotspot from phone
+
+VR not working?
+  - Must use HTTPS or localhost (http://172.17.128.1 works)
+  - Allow all permissions when asked
+  - Use Chrome browser on Android
+
+
+================================================================================

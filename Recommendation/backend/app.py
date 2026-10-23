@@ -39,9 +39,23 @@ def analyze_endpoint(floor_plan: FloorPlan):
             if len(top_suggestions) == 3:
                 break
 
+    # Generate AI-powered recommendations using LLM if available
+    ai_review = None
+    
+    # Build prompt for AI analysis
+    from prompt_builder import build_analysis_prompt
+    analysis_prompt = build_analysis_prompt(floor_plan, issues)
+    
+    # Try to generate AI-powered review
+    ai_review = generate_recommendations(analysis_prompt)
+    
+    # Fallback to rule-based review if AI is unavailable
+    if not ai_review:
+        ai_review = generate_human_readable_review(floor_plan, issues)
+    
     result = AnalysisResult(
         issues=issues,
-        ai_recommendations=generate_human_readable_review(floor_plan, issues),
+        ai_recommendations=ai_review,
         top_suggestions=top_suggestions,
         overall_score=overall_score,
         room_scores=room_scores

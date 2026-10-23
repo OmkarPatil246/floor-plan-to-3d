@@ -1,0 +1,139 @@
+================================================================================
+🚀 ARCHGEN 3D - COMPLETE SYSTEM RUNNING
+================================================================================
+
+✅ ALL SERVICES ARE OPERATIONAL!
+
+================================================================================
+📱 PUBLIC URL - USE THIS ON YOUR PHONE (Works from anywhere!)
+================================================================================
+
+🌐 Main Server (3D Viewer, Upload, VR Mode):
+   https://vacate-exposable-avid.ngrok-free.dev
+
+   ⭐ This is your PRIMARY URL for phone access!
+   - Upload floor plans
+   - View 3D models
+   - Enter VR walk mode
+   - Access AI recommendations
+
+================================================================================
+💻 LOCAL NETWORK URLS (Same WiFi only)
+================================================================================
+
+🏗️  ArchGen UI (Main Interface):
+   http://localhost:5173
+   http://10.141.113.231:5173
+
+📱 Main Server (3D Viewer):
+   http://localhost:8080
+   http://10.141.113.231:8080
+
+🎨 Recommendation UI:
+   http://localhost:5176
+   http://10.141.113.231:5176
+
+🤖 Recommendation API:
+   http://localhost:8000
+   http://10.141.113.231:8000
+
+================================================================================
+📋 RUNNING SERVICES STATUS
+================================================================================
+
+✅ Main Server (Port 8080) - RUNNING
+✅ ArchGen UI (Port 5173) - RUNNING  
+✅ Recommendation Frontend (Port 5176) - RUNNING
+✅ Recommendation Backend (Port 8000) - RUNNING
+✅ Ngrok Tunnel (Port 8080) - RUNNING
+
+================================================================================
+🎯 HOW TO USE ON YOUR PHONE
+================================================================================
+
+OPTION 1 - Using Public URL (Recommended):
+------------------------------------------
+1. Open your phone browser
+2. Go to: https://vacate-exposable-avid.ngrok-free.dev
+3. You'll see the main viewer interface
+4. Upload your floor plan image
+5. Wait for 3D model to generate
+6. Click "Get AI Recommendations" to view design suggestions
+7. Click "Enter VR Walk Mode" for immersive experience
+
+OPTION 2 - Using Local WiFi:
+-----------------------------
+1. Make sure your phone is on the SAME WiFi as this computer
+2. Open: http://10.141.113.231:8080
+3. Follow steps 4-7 from Option 1 above
+
+================================================================================
+🎮 VR MODE ACCESS
+================================================================================
+
+Direct VR URL for phone:
+   https://vacate-exposable-avid.ngrok-free.dev/viewer/vr-walk-mode.html
+
+Or from main viewer:
+   Click "Enter VR Walk Mode" button after loading a floor plan
+
+VR Features:
+   ✓ Eye-level camera (1.6m height)
+   ✓ Proper interior view (no ceiling view bug)
+   ✓ Touch controls for movement
+   ✓ Collision detection with walls
+
+================================================================================
+🔧 NAVIGATION FLOW
+================================================================================
+
+Main Viewer (8080) → Upload Floor Plan → View 3D Model
+                   ↓
+            Click "Get AI Recommendations"
+                   ↓
+       Redirects to → Recommendation UI (5176)
+                   ↓
+            View AI design suggestions
+
+================================================================================
+📊 NGROK DASHBOARD
+================================================================================
+
+View tunnel status and traffic:
+   http://localhost:4040
+
+Note: Free ngrok plan allows 1 tunnel at a time
+The main server (port 8080) tunnel is currently active
+
+================================================================================
+⚠️  IMPORTANT NOTES
+================================================================================
+
+1. Keep this terminal/console window open - closing it stops all services
+2. Public ngrok URL works from ANYWHERE with internet
+3. Local URLs (10.141.113.231) only work on same WiFi network
+4. Free ngrok tunnels may have a timeout after 2 hours
+5. To restart everything, run: START_WITH_NGROK.bat
+6. VR mode works best with HTTPS URLs (ngrok provides HTTPS)
+
+================================================================================
+🐛 FIXED ISSUES
+================================================================================
+
+✓ VR ceiling view bug - Fixed (camera at 1.6m eye height)
+✓ Black screen errors - Fixed (removed duplicate declarations)
+✓ Port conflicts - Fixed (Recommendation UI on 5176)
+✓ Navigation routing - Fixed (points to correct port 5176)
+✓ All services running with proper coordination
+
+================================================================================
+📞 QUICK SUPPORT
+================================================================================
+
+If services stop working:
+1. Check if all terminal windows are still open
+2. Restart services by running: START_WITH_NGROK.bat
+3. Check ngrok dashboard at http://localhost:4040
+4. Make sure ports are not being used by other applications
+
+================================================================================

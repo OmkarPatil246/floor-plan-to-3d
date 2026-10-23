@@ -13,15 +13,39 @@ _QA_HEADER = (
 )
 
 def build_prompt(floor_plan: FloorPlan, issues: List[Issue]) -> str:
-    parts = [_HEADER, "Room Breakdown:\n"]
+    parts = [_HEADER]
+    
+    # Overall floor plan context
+    total_rooms = len(floor_plan.rooms)
+    total_windows = sum(room.windows for room in floor_plan.rooms)
+    total_doors = sum(room.doors for room in floor_plan.rooms)
+    total_area = sum(room.area for room in floor_plan.rooms)
+    
+    parts.append(f"Overall Floor Plan:\n")
+    parts.append(f"- Total Rooms: {total_rooms}\n")
+    parts.append(f"- Total Area: {total_area:.1f} sq units\n")
+    parts.append(f"- Total Windows: {total_windows} (Natural light sources)\n")
+    parts.append(f"- Total Doors: {total_doors} (Access points)\n\n")
+    
+    parts.append("Room Breakdown:\n")
     for room in floor_plan.rooms:
-        parts.append(f"- {room.name} ({room.roomType}): Area={room.area} sqft, Doors={room.doors}, Windows={room.windows}\n")
+        ventilation = "Good" if room.windows > 0 else "Poor"
+        sunlight = "Excellent" if room.windows >= 2 else ("Good" if room.windows == 1 else "Poor")
+        parts.append(
+            f"- {room.name} ({room.roomType}): "
+            f"Area={room.area:.1f} sq units, "
+            f"Doors={room.doors}, "
+            f"Windows={room.windows}, "
+            f"Ventilation={ventilation}, "
+            f"Sunlight={sunlight}\n"
+        )
 
     parts.append("\nIdentified Architectural Observations:\n")
     if not issues:
         parts.append("No architectural non-compliances identified.\n")
-    for issue in issues:
-        parts.append(f"- {issue.room}: {issue.problem} (Severity: {issue.severity})\n")
+    else:
+        for issue in issues:
+            parts.append(f"- {issue.room}: {issue.problem} (Severity: {issue.severity})\n")
 
     parts.append(
         "\nINSTRUCTIONS:\n"
@@ -31,10 +55,16 @@ def build_prompt(floor_plan: FloorPlan, issues: List[Issue]) -> str:
         "2. Write in ONE fluid paragraph. Do NOT use bullet points, numbered lists, markdown, headings, asterisks, or hash symbols.\n"
         "3. Tone: Professional but easy for a normal homeowner to understand. Avoid technical jargon.\n"
         "4. Do NOT repeat the same issue multiple times.\n"
-        "5. Clearly explain what is good and what needs improvement.\n"
-        "6. Absolutely NO AI conversational filler, intro, or outro.\n"
+        "5. Clearly explain what is good (e.g., overall layout, room distribution) and what needs improvement (e.g., ventilation, sunlight).\n"
+        "6. Consider the overall floor plan flow, room connectivity, and functionality.\n"
+        "7. Absolutely NO AI conversational filler, intro, or outro.\n"
     )
     return "".join(parts)
+
+# Alias for backward compatibility
+def build_analysis_prompt(floor_plan: FloorPlan, issues: List[Issue]) -> str:
+    """Build a prompt for complete floor plan analysis. Alias for build_prompt."""
+    return build_prompt(floor_plan, issues)
 
 def build_qa_prompt(question: str, context: str) -> str:
     parts = [_QA_HEADER]

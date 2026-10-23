@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>VR Walk Mode - Floor Plan Viewer</title>
+<style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;font-family:Arial,sans-serif;color:#fff;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #view{display:block;width:100%;height:100%;touch-action:none}
+  #hud{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:16px;box-sizing:border-box}
+  #top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .panel{background:#101820cc;border:1px solid #ffffff30;border-radius:12px;padding:10px 12px;max-width:60%;font-size:13px;line-height:1.4}
+  button{pointer-events:auto;border:0;border-radius:12px;padding:12px 15px;background:#28a9ff;color:#061521;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 16px #0005;touch-action:none;-webkit-tap-highlight-color:transparent}
+  button.alt{background:#ffffffdd}
+  #topBtns{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  #bottom{display:flex;justify-content:center;align-items:flex-end;gap:10px;flex-wrap:wrap}
+  #status,#diag{width:100%;font-size:12px;opacity:.9;text-align:center}
+  #reticle{position:fixed;left:50%;top:50%;width:8px;height:8px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;opacity:.7}
+  body.vr #hud,body.vr #reticle{display:none}
+  #door-prompt{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(40,169,255,0.95);color:#fff;padding:16px 24px;border-radius:16px;font-size:18px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:1000;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.05)}}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="reticle"></div>
+<div id="door-prompt">👆 Look at door to open</div>
+<div id="hud">
+  <div id="top">
+    <div class="panel"><b>VR Walk Mode</b><br>Tap "Enter VR", slide phone into VR box. Walk in place to move forward. Look around with head movement.<br>
+      <label style="pointer-events:auto;display:block;margin-top:6px">Movement<br><select id="mode" style="width:100%;padding:6px;border-radius:8px"><option value="hybrid">Hybrid: steps + GPS (best)</option><option value="steps">Walk in place (steps only)</option><option value="gps-look">GPS speed, go where I look</option><option value="gps-true">GPS real map (uses compass)</option><option value="manual">Buttons / touch only</option></select></label>
+      <label style="pointer-events:auto;display:block;margin-top:6px">Step sensitivity (lower = more sensitive)<br><input id="sens" type="range" min="0.3" max="3" step="0.1" value="1.2" style="width:100%"></label></div>
+    <div id="topBtns">
+      <button id="arvr">Enter VR</button>
+      <button id="recenter" class="alt">Recenter</button>
+      <button id="exit" class="alt" style="display:none">Exit to Main</button>
+    </div>
+  </div>
+  <div id="bottom">
+    <button id="forward">▲ Forward</button><button id="left">◀ Left</button><button id="back">▼ Back</button><button id="right">Right ▶</button>
+    <div id="status">Loading VR support…</div>
+    <div id="diag"></div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.querySelector('#view');
+const statusEl = document.querySelector('#status');
+const arvrBtn = document.querySelector('#arvr');
+const recenterBtn = document.querySelector('#recenter');
+const exitBtn = document.querySelector('#exit');
+const doorPrompt = document.querySelector('#door-prompt');
+
+// Load generated model from main viewer
+let sceneData = null;
+let loadedHomeModel = null; // Will hold the actual loaded 3D home
+let floorLevel = 0; // Global floor level for player positioning
+let wallMeshes = []; // Array of wall meshes for collision detection
+
+// Check if we should use IndexedDB (for large models)
+const useIndexedDB = sessionStorage.getItem('vrUseIndexedDB') === 'true';
+
+if (useIndexedDB) {
+  console.log('═══════════════════════════════════════');
+  console.log('📥 Loading from IndexedDB (large model)');
+  console.log('═══════════════════════════════════════');
+  
+  // Load from IndexedDB
+  const dbRequest = indexedDB.open('VRWalkModeDB', 1);
+  
+  dbRequest.onerror = () => {
+    console.error('❌ Failed to open IndexedDB');
+  };
+  
+  dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    const transaction = db.transaction(['models'], 'readonly');
+    const store = transaction.objectStore('models');
+    const getRequest = store.get('vrScene');
+    
+    getRequest.onsuccess = () => {
+      sceneData = getRequest.result;
+      if (sceneData && sceneData.modelBlob) {
+        console.log(`🏠 Found model in IndexedDB: ${sceneData.sizeMB} MB`);
+        // Trigger scene initialization NOW that we have the data
+        initializeEnvironment();
+      } else {
+        console.log('⚠️ No model data in IndexedDB');
+        initializeEnvironment();
+      }
+    };
+    
+    getRequest.onerror = () => {
+      console.error('❌ Failed to read from IndexedDB');
+      initializeEnvironment();
+    };
+  };
+} else {
+  // Load from localStorage (small models)
+  try {
+    const storedScene = localStorage.getItem('vrWalkModeScene');
+    if (storedScene) {
+      sceneData = JSON.parse(storedScene);
+      console.log('═══════════════════════════════════════');
+      console.log('📥 Loading VR Walk Mode Scene Data');
+      
+      if (sceneData.modelFormat === 'glb' && sceneData.modelData) {
+        console.log('🏠 Found GLB model data - will load EXACT home model!');
+        console.log(`📦 Model size: ${(sceneData.modelData.length / 1024).toFixed(2)} KB`);
+      } else if (sceneData.planData) {
+        console.log('⚠️ Old format detected (planData) - please regenerate from main viewer');
+      }
+      console.log('═══════════════════════════════════════');
+    } else {
+      console.log('⚠️ No scene data in localStorage - will show sample environment');
+    }
+  } catch(e) {
+    console.error('❌ Error loading scene data:', e);
+    console.log('Will show sample environment instead');
+  }
+  
+  // Initialize environment with localStorage data
+  setTimeout(initializeEnvironment, 0);
+}
+
+/* ------------------------------------------------------------------
+   WebXR Polyfill for Cardboard VR Support
+------------------------------------------------------------------- */
+function loadScript(src){
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});
+}
+
+async function setupXR(){
+  try{
+    let native=false;
+    if(navigator.xr){ try{ native=await navigator.xr.isSessionSupported('immersive-vr'); }catch(e){} }
+    if(native) {
+      console.log('✅ Native WebXR detected');
+      return;
+    }
+    
+    console.log('⚠️ No native WebXR - loading polyfill...');
+    
+    // Clean up any existing XR implementation
+    if('xr' in navigator){ try{ delete Navigator.prototype.xr; }catch(e){} try{ delete navigator.xr; }catch(e){} }
+    for(const name of Object.getOwnPropertyNames(window)){
+      if(/^XR[A-Z]/.test(name)){ try{ delete window[name]; }catch(e){} }
+    }
+    
+    // Load WebXR polyfill with proper cardboard configuration
+    await loadScript('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.min.js');
+    
+    if(window.WebXRPolyfill) {
+      new window.WebXRPolyfill({
+        cardboard: true,
+        allowCardboardOnDesktop: true,
+        // Configure supported reference spaces
+        overridePose: false,
+        global: window
+      });
+      console.log('✅ WebXR Polyfill loaded with Cardboard support');
+    }
+  }catch(err){ 
+    console.error('❌ XR setup error:', err); 
+  }
+}
+
+const xrReady = setupXR().then(async()=>{
+  let ok=false;
+  try{ ok=!!(navigator.xr && await navigator.xr.isSessionSupported('immersive-vr')); }catch(e){}
+  statusEl.textContent = ok
+    ? 'Ready · tap "Enter VR", then put phone in VR box.'
+    : 'VR not available. Open on phone over HTTPS or localhost.';
+  return ok;
+});
+
+/* ---------------- Scene Setup ---------------- */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9bc8e8);
+scene.fog = new THREE.Fog(0x9bc8e8, 22, 90);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 250);
+const rig = new THREE.Group();
+rig.add(camera);
+scene.add(rig);
+
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.xr.enabled = true;
+renderer.xr.setReferenceSpaceType('local'); // headset starts at y=0, so rig.y = real eye height
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+// Lighting: same rig index.html ends up with (applyEnvironment + updateRoomLighting)
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const MAX_SPOTS = IS_MOBILE ? 10 : 40;   // phones choke on dozens of spotlights; decals still give the glow
+const hemi = new THREE.HemisphereLight(0xffe4be, 0xddd5c8, 0.7);
+const sun = new THREE.DirectionalLight(0xfff3d6, 1.35);
+sun.position.set(8, 16, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
+sun.shadow.camera.top = 30;   sun.shadow.camera.bottom = -30;
+sun.shadow.camera.far = 60;
+sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.02;
+const bounce = new THREE.DirectionalLight(0xffe4be, 0.4); bounce.position.set(-7, 9, -6);
+const rim = new THREE.DirectionalLight(0xe8f0ff, 0.22);   rim.position.set(0, 6, -12);
+const ambient = new THREE.AmbientLight(0xffe4be, 0.55);
+scene.add(hemi, sun, bounce, rim, ambient);
+
+const savedPrefs = (() => { try { return JSON.parse(localStorage.getItem('fp3d_v1')); } catch (e) { return null; } })();
+
+function applyLook({ night = false, roomIntensity: ri = 1, roomColor: rc = 0xffe4be } = {}) {
+  scene.fog = null;
+  scene.background = new THREE.Color(night ? 0x06090f : 0xdce8ee);
+  sun.color.set(night ? 0x8090b8 : 0xfff3d6);  sun.intensity = night ? 0.18 : 1.35;
+  rim.color.set(night ? 0x304080 : 0xe8f0ff);  rim.intensity = night ? 0.12 : 0.22;
+  hemi.color.set(night ? 0x10162a : rc);
+  hemi.groundColor.set(night ? 0x0a0d16 : 0xddd5c8);
+  hemi.intensity = night ? 0.28 : 0.70 * ri;
+  ambient.color.set(rc);  ambient.intensity = (night ? 0.70 : 0.55) * ri;
+  bounce.color.set(rc);   bounce.intensity = night ? 0.50 : 0.40 * ri;
+  renderer.toneMappingExposure = night ? 1.10 : 1.05;
+}
+
+// Re-creates what glTF can't store (blend mode, shadow flags, spotlight direction/decay)
+function fixExportedLook(root, s) {
+  let spots = 0;
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (o.isMesh) {
+      const tag = (o.userData?.name || o.name || '').match(/VRTAG_(.*?)__/);
+      const f = tag ? tag[1].split('_') : null;
+      const add = !!f && f.includes('add');
+      o.castShadow    = f ? f.includes('cast') && !add : true;
+      o.receiveShadow = f ? f.includes('recv') && !add : true;
+      if (add) o.renderOrder = 3;
+      for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
+        if (!m) continue;
+        if (add) { m.blending = THREE.AdditiveBlending; m.transparent = true; m.depthWrite = false; m.toneMapped = false; }
+        if (m.transmission > 0) m.transmission = 0;          // transmission pass breaks in WebXR
+        if (m.map) m.map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        m.needsUpdate = true;
+      }
+    } else if (o.isSpotLight) {
+      o.target.position.set(0, -1, 0);                       // point straight down like the original
+      o.decay = 1.6;                                         // original value (loader forces 2)
+      if (o.distance > 0) o.distance *= s;                   // house was scaled by s
+      o.intensity *= Math.pow(s, 1.6);
+      o.castShadow = false;
+      if (++spots > MAX_SPOTS) o.visible = false;
+    }
+  });
+}
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(200,200), 
+  new THREE.MeshStandardMaterial({color:0x557d53, roughness:1})
+);
+ground.rotation.x = -Math.PI/2; 
+ground.receiveShadow = true; 
+scene.add(ground);
+
+const grid = new THREE.GridHelper(100,100,0xffffff,0xffffff);
+grid.position.y = 0.012; 
+grid.material.transparent = true; 
+grid.material.opacity = 0.16; 
+scene.add(grid);
+
+// Player avatar - full human size
+const player = new THREE.Group();
+const EYE_HEIGHT = 1.6;
+const PLAYER_SCALE = 1; // Full size human
+
+const body = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.32 * PLAYER_SCALE, 0.65 * PLAYER_SCALE, 4, 8), 
+  new THREE.MeshStandardMaterial({color:0x2478ff, roughness:.7})
+);
+body.position.y = 0.82 * PLAYER_SCALE; 
+body.castShadow = true; 
+player.add(body);
+
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.24 * PLAYER_SCALE, 16, 12), 
+  new THREE.MeshStandardMaterial({color:0xffc89b, roughness:.8})
+);
+head.position.y = 1.48 * PLAYER_SCALE; 
+head.castShadow = true; 
+player.add(head);
+
+const face = new THREE.Mesh(
+  new THREE.BoxGeometry(.18 * PLAYER_SCALE, .08 * PLAYER_SCALE, .05 * PLAYER_SCALE), 
+  new THREE.MeshStandardMaterial({color:0x18202b})
+);
+face.position.set(0, 1.49 * PLAYER_SCALE, -0.22 * PLAYER_SCALE); 
+player.add(face);
+
+// Add shadow circle under player (always on floor)
+const shadowGeo = new THREE.CircleGeometry(0.3, 16);
+const shadowMat = new THREE.MeshBasicMaterial({
+  color: 0x000000,
+  opacity: 0.3,
+  transparent: true,
+  depthWrite: false
+});
+const playerShadow = new THREE.Mesh(shadowGeo, shadowMat);
+playerShadow.rotation.x = -Math.PI / 2;
+playerShadow.position.y = 0.01; // Slightly above floor to avoid z-fighting
+player.add(playerShadow);
+
+// ADD: Debug sphere at head height (where VR camera should be)
+const headHeightMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(0.1, 16, 16),
+  new THREE.MeshBasicMaterial({
+    color: 0xff0000, // Red color
+    transparent: true,
+    opacity: 0.5,
+    depthTest: false
+  })
+);
+headHeightMarker.position.y = 1.48 * PLAYER_SCALE; // Same as head
+headHeightMarker.renderOrder = 999;
+headHeightMarker.name = 'headHeightMarker';
+player.add(headHeightMarker);
+
+scene.add(player);
+
+// Virtual body visible in VR stereo view (attached to camera) - full human size
+const vrBody = new THREE.Group();
+const VR_BODY_SCALE = 1; // Full size human
+
+// Torso (visible below when looking down)
+const vrTorso = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.18 * VR_BODY_SCALE, 0.22 * VR_BODY_SCALE, 0.5 * VR_BODY_SCALE, 8),
+  new THREE.MeshStandardMaterial({color:0x2478ff, roughness:0.7})
+);
+vrTorso.position.set(0, -0.4 * VR_BODY_SCALE, -0.1 * VR_BODY_SCALE);
+vrTorso.castShadow = true;
+vrBody.add(vrTorso);
+
+// Legs (visible when looking down)
+const legGeo = new THREE.CylinderGeometry(0.08 * VR_BODY_SCALE, 0.07 * VR_BODY_SCALE, 0.8 * VR_BODY_SCALE, 8);
+const legMat = new THREE.MeshStandardMaterial({color:0x1a5ca0, roughness:0.8});
+
+const leftLeg = new THREE.Mesh(legGeo, legMat);
+leftLeg.position.set(-0.12 * VR_BODY_SCALE, -0.85 * VR_BODY_SCALE, 0);
+leftLeg.castShadow = true;
+vrBody.add(leftLeg);
+
+const rightLeg = new THREE.Mesh(legGeo, legMat);
+rightLeg.position.set(0.12 * VR_BODY_SCALE, -0.85 * VR_BODY_SCALE, 0);
+rightLeg.castShadow = true;
+vrBody.add(rightLeg);
+
+// Feet
+const footGeo = new THREE.BoxGeometry(0.15 * VR_BODY_SCALE, 0.06 * VR_BODY_SCALE, 0.22 * VR_BODY_SCALE);
+const footMat = new THREE.MeshStandardMaterial({color:0x333333, roughness:0.9});
+
+const leftFoot = new THREE.Mesh(footGeo, footMat);
+leftFoot.position.set(-0.12 * VR_BODY_SCALE, -1.27 * VR_BODY_SCALE, 0.05 * VR_BODY_SCALE);
+leftFoot.castShadow = true;
+vrBody.add(leftFoot);
+
+const rightFoot = new THREE.Mesh(footGeo, footMat);
+rightFoot.position.set(0.12 * VR_BODY_SCALE, -1.27 * VR_BODY_SCALE, 0.05 * VR_BODY_SCALE);
+rightFoot.castShadow = true;
+vrBody.add(rightFoot);
+
+// Hands visible in front view
+const handGeo = new THREE.SphereGeometry(0.08 * VR_BODY_SCALE, 12, 12);
+const handMat = new THREE.MeshStandardMaterial({color:0xffc89b, roughness:0.8});
+
+const leftHand = new THREE.Mesh(handGeo, handMat);
+leftHand.position.set(-0.35 * VR_BODY_SCALE, -0.3 * VR_BODY_SCALE, -0.4 * VR_BODY_SCALE);
+leftHand.castShadow = true;
+vrBody.add(leftHand);
+
+const rightHand = new THREE.Mesh(handGeo, handMat);
+rightHand.position.set(0.35 * VR_BODY_SCALE, -0.3 * VR_BODY_SCALE, -0.4 * VR_BODY_SCALE);
+rightHand.castShadow = true;
+vrBody.add(rightHand);
+
+// Arms
+const armGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8);
+const armMat = new THREE.MeshStandardMaterial({color:0x2478ff, roughness:0.7});
+
+const leftArm = new THREE.Mesh(armGeo, armMat);
+leftArm.position.set(-0.28, -0.35, -0.25);
+leftArm.rotation.z = 0.3;
+leftArm.castShadow = true;
+vrBody.add(leftArm);
+
+const rightArm = new THREE.Mesh(armGeo, armMat);
+rightArm.position.set(0.28, -0.35, -0.25);
+rightArm.rotation.z = -0.3;
+rightArm.castShadow = true;
+vrBody.add(rightArm);
+
+vrBody.visible = false; // Show only in VR mode
+vrBody.position.y = -0.3;
+camera.add(vrBody); // Attach to camera so it moves with head
+
+// Door system
+const doors = [];
+const doorGroup = new THREE.Group();
+scene.add(doorGroup);
+
+// Collision detection
+let wallBoxes = [];
+
+function createDoor(x, y, z, rotation = 0) {
+  const doorFrame = new THREE.Group();
+  
+  // Door frame
+  const frameMat = new THREE.MeshStandardMaterial({color:0x8B4513, roughness:0.8});
+  const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.2, 0.1), frameMat);
+  leftPost.position.set(-1, 1.1, 0);
+  leftPost.castShadow = true;
+  doorFrame.add(leftPost);
+  
+  const rightPost = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.2, 0.1), frameMat);
+  rightPost.position.set(1, 1.1, 0);
+  rightPost.castShadow = true;
+  doorFrame.add(rightPost);
+  
+  const topPost = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 0.1), frameMat);
+  topPost.position.set(0, 2.2, 0);
+  topPost.castShadow = true;
+  doorFrame.add(topPost);
+  
+  // Door panel
+  const doorPanel = new THREE.Mesh(
+    new THREE.BoxGeometry(1.8, 2, 0.08),
+    new THREE.MeshStandardMaterial({color:0xA0522D, roughness:0.6})
+  );
+  doorPanel.position.set(0, 1, 0);
+  doorPanel.castShadow = true;
+  doorPanel.receiveShadow = true;
+  doorFrame.add(doorPanel);
+  
+  doorFrame.position.set(x, y, z);
+  doorFrame.rotation.y = rotation;
+  doorGroup.add(doorFrame);
+  
+  doors.push({
+    frame: doorFrame,
+    panel: doorPanel,
+    isOpen: false,
+    originalPos: doorPanel.position.clone(),
+    lookTimer: 0
+  });
+  
+  return doorFrame;
+}
+
+// Function to initialize environment AFTER data is loaded
+function initializeEnvironment() {
+  const lk = (sceneData && sceneData.lighting) || {};
+  applyLook({
+    night: lk.night ?? savedPrefs?.nightMode,
+    roomIntensity: lk.roomIntensity ?? savedPrefs?.roomIntensity,
+    roomColor: lk.roomColor ?? savedPrefs?.roomColor,
+  });
+  
+  // Environment: Sample OR load your EXACT 3D home model (GLB)
+  if (!sceneData || (!sceneData.modelFormat && !sceneData.planData)) {
+    console.log('🎮 No model data - showing sample environment');
+    
+    // Create sample doors for demo
+    createDoor(5, 0, -8, 0);
+    createDoor(-5, 0, 8, Math.PI);
+    createDoor(8, 0, 0, Math.PI/2);
+    
+    // Sample environment objects
+    const matA = new THREE.MeshStandardMaterial({color:0xd9e3e8, roughness:.9});
+    const matB = new THREE.MeshStandardMaterial({color:0xe0a64b, roughness:.85});
+    function box(x,y,z,sx,sy,sz,mat){
+      const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);
+      m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;
+    }
+    for(let i=-3;i<=3;i++){
+      if(i===0) continue;
+      box(i*3,.5,-8,1,1,1, i%2?matA:matB);
+      box(i*3,.5,8,1,1,1, i%2?matB:matA);
+    }
+  } else {
+    // Load the EXACT 3D home model from GLB (from IndexedDB or localStorage)
+    console.log('🏠 Loading YOUR EXACT 3D home model from GLB...');
+    
+    // Remove default ground and grid - we'll use your home's actual geometry
+    scene.remove(ground);
+    scene.remove(grid);
+    
+    // Import GLTFLoader for loading the GLB model
+    import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => {
+      const gltfLoader = new GLTFLoader();
+      
+      // Get the blob from either IndexedDB or localStorage
+      let blobPromise;
+      
+      if (sceneData.modelBlob) {
+        // From IndexedDB - already a blob
+        console.log('📦 Loading from IndexedDB blob...');
+        blobPromise = Promise.resolve(sceneData.modelBlob);
+      } else if (sceneData.modelData) {
+        // From localStorage - convert base64 to blob
+        console.log('📦 Converting base64 to blob...');
+        blobPromise = fetch(sceneData.modelData).then(res => res.blob());
+      } else {
+        console.error('❌ No model data found');
+        scene.add(ground);
+        scene.add(grid);
+        return;
+      }
+      
+      blobPromise
+        .then(blob => {
+          // Create object URL from blob
+          const blobUrl = URL.createObjectURL(blob);
+          
+          // Load the GLB model
+          gltfLoader.load(
+            blobUrl,
+            (gltf) => {
+              loadedHomeModel = gltf.scene;
+              
+              // Count meshes only
+              let meshCount = 0;
+              loadedHomeModel.traverse(c => { if (c.isMesh) meshCount++; });
+              
+              console.log(`✅ Loaded ${meshCount} meshes`);
+              
+              scene.add(loadedHomeModel);
+              loadedHomeModel.updateMatrixWorld(true);
+              
+              // Scale house to human size and apply look fixes
+              const bb = new THREE.Box3().setFromObject(loadedHomeModel);
+              let houseScale = 1;
+              if (sceneData.wallHeight > 0) houseScale = 2.8 / sceneData.wallHeight;
+              else { const rawH = bb.max.y - bb.min.y; if (rawH > 0.01 && (rawH < 2.2 || rawH > 6)) houseScale = 2.8 / rawH; }
+              if (houseScale !== 1) loadedHomeModel.scale.multiplyScalar(houseScale);
+              fixExportedLook(loadedHomeModel, houseScale);
+              loadedHomeModel.updateMatrixWorld(true);
+              bb.setFromObject(loadedHomeModel);
+              
+              // floor at y = 0
+              loadedHomeModel.position.y -= bb.min.y;
+              loadedHomeModel.updateMatrixWorld(true);
+              bb.setFromObject(loadedHomeModel);
+              floorLevel = bb.min.y;
+              const size = bb.getSize(new THREE.Vector3());
+              const center = bb.getCenter(new THREE.Vector3());
+              
+              // cached collision boxes (walls only, not floor/roof/whole-house meshes)
+              wallMeshes = []; wallBoxes = [];
+              loadedHomeModel.traverse(ch => {
+                if (!ch.isMesh) return;
+                const b = new THREE.Box3().setFromObject(ch);
+                const s = b.getSize(new THREE.Vector3());
+                const hugeFootprint = s.x * s.z > 0.5 * size.x * size.z;
+                const atBodyHeight = b.max.y > floorLevel + 0.5 && b.min.y < floorLevel + 1.0;
+                if (atBodyHeight && !hugeFootprint) { wallMeshes.push(ch); wallBoxes.push(b.expandByScalar(0.3)); }
+              });
+              
+              // spawn in a free spot near the middle of the house
+              const down = new THREE.Raycaster();
+              let spawn = { x: center.x, z: center.z }, found = false;
+              const DEG2RAD = Math.PI / 180;
+              
+              // Helper function to check if position is blocked by walls
+              const checkBlocked = (x, z) => {
+                const p = new THREE.Vector3(x, floorLevel + 0.5, z);
+                for (const b of wallBoxes) if (b.containsPoint(p)) return true;
+                return false;
+              };
+              
+              for (let r = 0; r <= Math.max(size.x, size.z) / 2 && !found; r += 0.5) {
+                for (let a = 0; a < 360 && !found; a += (r === 0 ? 360 : 30)) {
+                  const x = center.x + r * Math.cos(a * DEG2RAD), z = center.z + r * Math.sin(a * DEG2RAD);
+                  if (checkBlocked(x, z)) continue;
+                  down.set(new THREE.Vector3(x, bb.max.y + 1, z), new THREE.Vector3(0, -1, 0));
+                  const hit = down.intersectObject(loadedHomeModel, true)[0];
+                  if (hit && hit.point.y < floorLevel + 0.3) { spawn = { x, z }; found = true; }
+                }
+              }
+              player.position.set(spawn.x, floorLevel, spawn.z);
+              rigY = floorLevel + EYE_HEIGHT;
+              rig.position.set(spawn.x, rigY, spawn.z);
+              camera.position.set(0, 0, 0);
+              console.log(`House height ${(bb.max.y - bb.min.y).toFixed(2)} m, eye at ${rigY.toFixed(2)}`);
+              
+              // Clean up blob URL
+              URL.revokeObjectURL(blobUrl);
+            },
+            (progress) => {
+              if (progress.total > 0) {
+                const percent = (progress.loaded / progress.total * 100).toFixed(1);
+                console.log(`⏳ Loading model: ${percent}%`);
+              }
+            },
+            (error) => {
+              console.error('❌ Failed to load GLB model:', error);
+              alert('Failed to load your 3D home. Showing sample environment.');
+              
+              // Fallback to sample environment
+              scene.add(ground);
+              scene.add(grid);
+            }
+          );
+        })
+        .catch(error => {
+          console.error('❌ Failed to process model data:', error);
+          alert('Failed to process model data. Showing sample environment.');
+          scene.add(ground);
+          scene.add(grid);
+        });
+    }).catch(error => {
+      console.error('❌ Failed to load GLTFLoader:', error);
+      scene.add(ground);
+      scene.add(grid);
+    });
+  }
+}
+
+/* ---------------- Gyroscope & Device Orientation ---------------- */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const D2R=Math.PI/180;
+const CHASE_DIST=3.2;
+
+let gyroEnabled=false, gotGyroData=false, needCalibrate=true, headingOffset=0, userYaw=0, yaw=0, pitch=0, devHasData=false;
+const devTarget=new THREE.Quaternion(), devSmooth=new THREE.Quaternion(), lookQ=new THREE.Quaternion();
+const _euler=new THREE.Euler(), _q0=new THREE.Quaternion(), _q1=new THREE.Quaternion(-Math.sqrt(.5),0,0,Math.sqrt(.5));
+const ZEE=new THREE.Vector3(0,0,1), UP=new THREE.Vector3(0,1,0), _v=new THREE.Vector3(), _dir=new THREE.Vector3();
+
+function screenAngle(){
+  const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(typeof window.orientation==='number'?window.orientation:0);
+  return a*D2R;
+}
+
+function deviceToQuat(out,alpha,beta,gamma,orient){
+  _euler.set(beta,alpha,-gamma,'YXZ'); out.setFromEuler(_euler);
+  out.multiply(_q1); out.multiply(_q0.setFromAxisAngle(ZEE,-orient)); return out;
+}
+
+function yawOf(q){
+  _v.set(0,0,-1).applyQuaternion(q);
+  if(Math.hypot(_v.x,_v.z)<0.05){ _v.set(0,1,0).applyQuaternion(q); return Math.atan2(_v.x,_v.z); }
+  return Math.atan2(-_v.x,-_v.z);
+}
+
+function onOrientation(e){
+  if(!gyroEnabled||e.alpha==null||e.beta==null||e.gamma==null) return;
+  if(typeof e.webkitCompassHeading==='number'&&e.webkitCompassHeading>=0) setCompass(360-e.webkitCompassHeading,e.beta,e.gamma);
+  deviceToQuat(devTarget,e.alpha*D2R,e.beta*D2R,e.gamma*D2R,screenAngle());
+  if(!devHasData){devSmooth.copy(devTarget);devHasData=true;}
+  gotGyroData=true;
+}
+
+async function enableGyro(){
+  try{
+    const reqs=[];
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function') reqs.push(DeviceOrientationEvent.requestPermission());
+    if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function') reqs.push(DeviceMotionEvent.requestPermission());
+    const res=await Promise.all(reqs);
+    if(res.some(r=>r!=='granted')) return false;
+    if(!gyroEnabled&&'DeviceOrientationEvent' in window){
+      gyroEnabled=true; window.addEventListener('deviceorientation',onOrientation,true);
+      window.addEventListener('deviceorientationabsolute',onAbsOrientation,true);
+    }
+    if(!motionEnabled&&'DeviceMotionEvent' in window){
+      motionEnabled=true; window.addEventListener('devicemotion',onMotion,true);
+    }
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ---------------- Compass ---------------- */
+let compassSin=0, compassCos=1, compassOK=false;
+const absQ=new THREE.Quaternion();
+
+function setCompass(alphaDeg,beta,gamma){
+  deviceToQuat(absQ,alphaDeg*D2R,beta*D2R,gamma*D2R,screenAngle());
+  const b=-yawOf(absQ);
+  if(!compassOK){compassSin=Math.sin(b);compassCos=Math.cos(b);compassOK=true;}
+  else{compassSin+=(Math.sin(b)-compassSin)*0.15;compassCos+=(Math.cos(b)-compassCos)*0.15;}
+}
+
+const compassBearing=()=>Math.atan2(compassSin,compassCos);
+function onAbsOrientation(e){ 
+  if(e.alpha==null||e.beta==null||e.gamma==null||e.absolute===false) return; 
+  setCompass(e.alpha,e.beta,e.gamma); 
+}
+
+/* ---------------- Step Detection (Accelerometer) ---------------- */
+const modeSel=document.getElementById('mode'), diagEl=document.getElementById('diag');
+try{ const m=localStorage.getItem('moveMode'); if(m&&modeSel) modeSel.value=m; }catch(e){}
+modeSel&&modeSel.addEventListener('change',()=>{ try{localStorage.setItem('moveMode',modeSel.value);}catch(e){} needCalibrate=true; calStart=null; });
+const getMode=()=>modeSel?modeSel.value:'hybrid';
+const wrapPi=a=>Math.atan2(Math.sin(a),Math.cos(a));
+const approach=(c,t,s)=>c<t?Math.min(c+s,t):Math.max(c-s,t);
+
+let motionEnabled=false, stepCount=0, lastStepT=0, lastStepAt=-1e9, cadenceOK=0;
+let baseline=9.8, lp=0, prev1=0, prev2=0, varAcc=0.5, winMax=0, winMin=0, rotLP=0;
+let emaSpeed=0, pdrSpeedCur=0, lastStepLen=0.7, pdrWindowDist=0;
+let strideK=0.62;
+
+try{ const k=parseFloat(localStorage.getItem('strideK')); if(k>0.2&&k<1.6) strideK=k; }catch(e){}
+const sens=document.getElementById('sens');
+try{ const s=localStorage.getItem('stepThr'); if(s&&sens) sens.value=s; }catch(e){}
+sens&&sens.addEventListener('input',()=>{ try{localStorage.setItem('stepThr',sens.value);}catch(e){} });
+
+function onMotion(e){
+  const a=e.accelerationIncludingGravity; if(!a||a.x==null) return;
+  const t=performance.now();
+  const m=Math.hypot(a.x,a.y,a.z);
+  baseline+=(m-baseline)*0.01;
+  lp+=((m-baseline)-lp)*0.35;
+  varAcc+=(lp*lp-varAcc)*0.01;
+  const r=e.rotationRate; if(r){ const w=Math.hypot(r.alpha||0,r.beta||0,r.gamma||0); rotLP+=(w-rotLP)*0.2; }
+  if(lp>winMax) winMax=lp; if(lp<winMin) winMin=lp;
+  if(prev1>prev2 && prev1>=lp){
+    const thr=Math.max(parseFloat(sens?sens.value:1.0),0.8*Math.sqrt(varAcc));
+    if(prev1>thr && t-lastStepT>300 && rotLP<250) registerStep(t,winMax-winMin);
+  }
+  prev2=prev1; prev1=lp;
+}
+
+function registerStep(t,pp){
+  const dtStep=(t-lastStepT)/1000; lastStepT=t; winMax=winMin=lp;
+  cadenceOK=dtStep<1.1?Math.min(cadenceOK+1,3):0;
+  if(cadenceOK<1||pp<0.5) return;
+  const len=clamp(strideK*Math.pow(pp,0.25),0.3,1.1);
+  const inst=len/clamp(dtStep,0.3,1.1);
+  emaSpeed=emaSpeed>0?emaSpeed*0.6+inst*0.4:inst;
+  lastStepLen=len; lastStepAt=t; stepCount++;
+}
+
+/* ---------------- GPS (Optional) ---------------- */
+class K2{
+  constructor(){this.x0=0;this.x1=0;this.P00=1e4;this.P01=0;this.P10=0;this.P11=100;}
+  reset(p,acc){this.x0=p;this.x1=0;this.P00=acc*acc;this.P01=this.P10=0;this.P11=4;}
+  predict(dt,q){
+    this.x0+=this.x1*dt;
+    const {P00,P01,P10,P11}=this;
+    this.P00=P00+dt*(P01+P10)+dt*dt*P11+q*dt**4/4;
+    this.P01=P01+dt*P11+q*dt**3/2;
+    this.P10=P10+dt*P11+q*dt**3/2;
+    this.P11=P11+q*dt*dt;
+  }
+  update(h0,h1,z,R){
+    const y=z-(h0*this.x0+h1*this.x1);
+    const a=this.P00*h0+this.P01*h1, b=this.P10*h0+this.P11*h1;
+    const S=h0*a+h1*b+R, k0=a/S, k1=b/S;
+    this.x0+=k0*y; this.x1+=k1*y;
+    const hp0=h0*this.P00+h1*this.P10, hp1=h0*this.P01+h1*this.P11;
+    this.P00-=k0*hp0; this.P01-=k0*hp1; this.P10-=k1*hp0; this.P11-=k1*hp1;
+  }
+}
+
+const kE=new K2(), kN=new K2();
+const GPS={watch:null,lat0:null,lon0:null,cos:1,t:0,acc:null,err:null,fixes:0,lastFix:0,vE:0,vN:0,speed:0,moving:false};
+let calStart=null;
+
+function startGps(){
+  if(GPS.watch!==null) return;
+  if(!('geolocation' in navigator)){ GPS.err='not supported'; return; }
+  GPS.watch=navigator.geolocation.watchPosition(onGps,err=>{GPS.err=err.code===1?'permission denied':(err.message||'error');},
+    {enableHighAccuracy:true,maximumAge:0,timeout:20000});
+}
+
+function onGps(pos){
+  const c=pos.coords; GPS.acc=c.accuracy; GPS.err=null; GPS.fixes++;
+  if(c.accuracy>35) return;
+  const t=pos.timestamp/1000;
+  if(GPS.lat0===null){
+    GPS.lat0=c.latitude; GPS.lon0=c.longitude; GPS.cos=Math.cos(c.latitude*D2R);
+    kE.reset(0,c.accuracy); kN.reset(0,c.accuracy); GPS.t=t; GPS.lastFix=performance.now(); return;
+  }
+  const E=(c.longitude-GPS.lon0)*GPS.cos*111320, N=(c.latitude-GPS.lat0)*110574;
+  const dtF=clamp(t-GPS.t,0.05,5); GPS.t=t;
+  kE.predict(dtF,1.0); kN.predict(dtF,1.0);
+  const R=Math.max(c.accuracy,3)**2;
+  kE.update(1,0,E,R); kN.update(1,0,N,R);
+  if(typeof c.speed==='number'&&!isNaN(c.speed)){
+    if(c.speed<0.3||typeof c.heading!=='number'||isNaN(c.heading)){ kE.update(0,1,0,0.16); kN.update(0,1,0,0.16); }
+    else{ const h=c.heading*D2R; kE.update(0,1,c.speed*Math.sin(h),0.49); kN.update(0,1,c.speed*Math.cos(h),0.49); }
+  }
+  GPS.lastFix=performance.now();
+  calibrateStride();
+}
+
+function gpsRefresh(){
+  const age=(performance.now()-GPS.lastFix)/1000;
+  const fade=age>3?Math.exp(-(age-3)/1.5):1;
+  GPS.vE=kE.x1*fade; GPS.vN=kN.x1*fade; GPS.speed=Math.hypot(GPS.vE,GPS.vN);
+  GPS.moving=GPS.moving?GPS.speed>0.4:GPS.speed>0.7;
+}
+
+function calibrateStride(){
+  if(getMode()!=='hybrid'){calStart=null;return;}
+  const now=performance.now()/1000;
+  if(!calStart){calStart={E:kE.x0,N:kN.x0,t:now};pdrWindowDist=0;return;}
+  if(now-calStart.t<8) return;
+  const gd=Math.hypot(kE.x0-calStart.E,kN.x0-calStart.N);
+  if(GPS.acc<=15&&pdrWindowDist>6&&gd>4){
+    const ratio=gd/pdrWindowDist;
+    if(ratio>0.5&&ratio<2){ strideK=clamp(strideK*(1+0.35*(ratio-1)),0.25,1.5); try{localStorage.setItem('strideK',strideK.toFixed(3));}catch(e){} }
+  }
+  calStart=null;
+}
+
+/* ---------------- Movement & Door Interaction ---------------- */
+let gpsSpeedCur=0;
+const raycaster = new THREE.Raycaster();
+const rayDir = new THREE.Vector3();
+
+// Collision detection with walls
+function isBlocked(x, z) {
+  const p = new THREE.Vector3(x, floorLevel + 0.5, z);
+  for (const b of wallBoxes) if (b.containsPoint(p)) return true;
+  return false;
+}
+function checkWallCollision(newX, newZ) {
+  const px = player.position.x, pz = player.position.z;
+  if (!wallBoxes.length || isBlocked(px, pz)) return { x: newX, z: newZ };
+  if (!isBlocked(newX, newZ)) return { x: newX, z: newZ };
+  if (!isBlocked(newX, pz)) return { x: newX, z: pz };   // slide along wall
+  if (!isBlocked(px, newZ)) return { x: px, z: newZ };
+  return { x: px, z: pz };
+}
+
+function move(dt){
+  const mode=getMode(), t=performance.now();
+  gpsRefresh();
+  let dx=0, dz=0;
+  
+  // Button/touch controls
+  const f=(keys.forward?1:0)-(keys.back?1:0), s=(keys.right?1:0)-(keys.left?1:0);
+  if(f||s){ 
+    const sp=3.2*dt/Math.hypot(f,s); 
+    dx+=(-Math.sin(facingYaw)*f+Math.cos(facingYaw)*s)*sp; 
+    dz+=(-Math.cos(facingYaw)*f-Math.sin(facingYaw)*s)*sp; 
+  }
+  
+  // Step detection movement
+  const stepsRecent=(t-lastStepAt)<900;
+  const usePdr=mode==='steps'||mode==='hybrid';
+  pdrSpeedCur=approach(pdrSpeedCur,(usePdr&&stepsRecent)?emaSpeed:0,5*dt);
+  pdrWindowDist+=pdrSpeedCur*dt;
+  
+  // GPS movement
+  const trueMap=mode==='gps-true'&&compassOK;
+  const gpsLook=mode==='gps-look'||(mode==='gps-true'&&!compassOK)||(mode==='hybrid'&&!stepsRecent&&pdrSpeedCur<0.1);
+  gpsSpeedCur=approach(gpsSpeedCur,(gpsLook&&GPS.moving)?GPS.speed:0,3*dt);
+  const fwd=pdrSpeedCur+gpsSpeedCur;
+  dx+=-Math.sin(facingYaw)*fwd*dt; dz+=-Math.cos(facingYaw)*fwd*dt;
+  
+  if(trueMap&&GPS.moving){ dx+=GPS.vE*dt; dz+=-GPS.vN*dt; }
+  
+  // Calculate new position with movement
+  const newX = clamp(player.position.x + dx, -90, 90);
+  const newZ = clamp(player.position.z + dz, -90, 90);
+  
+  // Check for wall collisions and adjust position
+  const safePos = checkWallCollision(newX, newZ);
+  
+  // Update player position (with collision check)
+  player.position.x = safePos.x;
+  player.position.z = safePos.z;
+  player.position.y = floorLevel; // ALWAYS keep player on floor!
+  
+  // Door interaction - check if looking at door
+  checkDoorInteraction();
+}
+
+function checkDoorInteraction() {
+  rayDir.set(0, 0, -1).applyQuaternion(lookQ);
+  raycaster.set(player.position.clone().add(new THREE.Vector3(0, 1.6, 0)), rayDir);
+  
+  let lookingAtDoor = false;
+  doors.forEach(door => {
+    if (!door.isOpen) {
+      const intersects = raycaster.intersectObject(door.panel, true);
+      if (intersects.length > 0 && intersects[0].distance < 4) {
+        lookingAtDoor = true;
+        door.lookTimer += 0.016;
+        if (door.lookTimer > 1.5) { // 1.5 seconds of looking
+          openDoor(door);
+        }
+      } else {
+        door.lookTimer = Math.max(0, door.lookTimer - 0.032);
+      }
+    }
+  });
+  
+  doorPrompt.style.display = lookingAtDoor ? 'block' : 'none';
+}
+
+function openDoor(door) {
+  door.isOpen = true;
+  door.lookTimer = 0;
+  
+  // Animate door opening
+  const startRot = door.panel.rotation.y;
+  const endRot = startRot - Math.PI / 2;
+  const duration = 1000;
+  const startTime = performance.now();
+  
+  function animate() {
+    const elapsed = performance.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    door.panel.rotation.y = startRot + (endRot - startRot) * eased;
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+
+setInterval(()=>{
+  if(!diagEl||renderer.xr.isPresenting) return;
+  const g=GPS.err?'GPS: '+GPS.err:(GPS.acc==null?'GPS: waiting':'GPS ±'+GPS.acc.toFixed(0)+' m, '+GPS.speed.toFixed(1)+' m/s');
+  diagEl.textContent=g+' · steps '+stepCount+' · stride '+lastStepLen.toFixed(2)+' m (K '+strideK.toFixed(2)+') · compass '+(compassOK?'ok':'n/a');
+},500);
+
+function computeLook(){
+  if(gyroEnabled&&devHasData){
+    devSmooth.slerp(devTarget,0.65);
+    const north=getMode()==='gps-true'&&compassOK;
+    if(needCalibrate){headingOffset=north?-compassBearing()-yawOf(devSmooth):-yawOf(devSmooth);userYaw=0;needCalibrate=false;}
+    else if(north){ userYaw=0; headingOffset+=wrapPi(-compassBearing()-(yawOf(devSmooth)+headingOffset))*0.02; }
+    _q0.setFromAxisAngle(UP,headingOffset+userYaw);
+    lookQ.copy(_q0).multiply(devSmooth);
+  } else {
+    _euler.set(pitch,yaw,0,'YXZ'); lookQ.setFromEuler(_euler);
+  }
+}
+
+// Touch/drag controls
+let dragging=false,lastX=0,lastY=0;
+canvas.addEventListener('pointerdown',e=>{if(renderer.xr.isPresenting)return;dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture?.(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{
+  if(!dragging||renderer.xr.isPresenting)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
+  if(gyroEnabled&&devHasData){userYaw-=dx*.004;} else {yaw-=dx*.004;pitch=clamp(pitch-dy*.004,-1.25,1.25);}
+});
+const endDrag=()=>{dragging=false;};
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+recenterBtn.addEventListener('click',()=>{
+  needCalibrate=true;
+  yaw=0;
+  pitch=0;
+  
+  // If in VR mode, recenter the view to look straight ahead
+  if(renderer.xr.isPresenting){
+    // Reset camera rotation to look straight ahead
+    camera.rotation.set(0, 0, 0); // Pitch=0, Yaw=0, Roll=0
+    camera.quaternion.identity(); // Reset quaternion
+    
+    // Recalculate eye height from floor level
+    const eyeHeight = floorLevel + EYE_HEIGHT;
+    rigY = eyeHeight;
+    rig.position.set(player.position.x, eyeHeight, player.position.z);
+    
+    console.log('🔄 VR View Recentered');
+    console.log(`👁️ Camera at eye height: ${eyeHeight.toFixed(2)}m`);
+    console.log(`📐 Looking straight ahead`);
+    
+    statusEl.textContent='View recentered. Looking straight ahead.';
+    setTimeout(() => {
+      statusEl.textContent='VR Mode Active';
+    }, 2000);
+  }
+});
+
+/* ---------------- Movement Buttons ---------------- */
+const keys={forward:false,back:false,left:false,right:false};
+function bindMove(id,key){
+  const el=document.getElementById(id);
+  const start=e=>{e.preventDefault();keys[key]=true;};
+  const stop=e=>{e.preventDefault();keys[key]=false;};
+  el.addEventListener('pointerdown',start);
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>el.addEventListener(n,stop));
+}
+bindMove('forward','forward');bindMove('back','back');bindMove('left','left');bindMove('right','right');
+
+const keyMap={w:'forward',ArrowUp:'forward',s:'back',ArrowDown:'back',a:'left',ArrowLeft:'left',d:'right',ArrowRight:'right'};
+window.addEventListener('keydown',e=>{const k=keyMap[e.key];if(k)keys[k]=true;});
+window.addEventListener('keyup',e=>{const k=keyMap[e.key];if(k)keys[k]=false;});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+
+let facingYaw=0;
+
+/* ---------------- Enter VR (WebXR with Cardboard Polyfill) ---------------- */
+let rigY = 0; // Will be set to floorLevel + 1.6 when VR starts
+let checkedHeight = false;
+
+arvrBtn.addEventListener('click',async()=>{
+  if(renderer.xr.isPresenting){ 
+    await renderer.xr.getSession()?.end(); 
+    return; 
+  }
+  
+  startGps();
+  await enableGyro();
+  const ok=await xrReady;
+  
+  if(!ok){ 
+    statusEl.textContent='VR not available. Use phone over HTTPS or localhost.'; 
+    return; 
+  }
+  
+  try{
+    // Request session with proper reference space configuration
+    const session=await navigator.xr.requestSession('immersive-vr',{
+      requiredFeatures: ['local'],
+      optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+    });
+    
+    // Configure reference space - try local-floor first, fallback to local
+    try {
+      // Try to get local-floor reference space
+      const refSpace = await session.requestReferenceSpace('local-floor');
+      console.log('✅ Using local-floor reference space');
+    } catch (e) {
+      console.log('⚠️ local-floor not supported, using local reference space');
+      try {
+        const refSpace = await session.requestReferenceSpace('local');
+        console.log('✅ Using local reference space');
+      } catch (e2) {
+        console.error('❌ No reference space available:', e2);
+        throw new Error('VR reference space not available');
+      }
+    }
+    
+    // Touch events for movement
+    session.addEventListener('selectstart',()=>{keys.forward=true;});
+    session.addEventListener('selectend',()=>{keys.forward=false;});
+    
+    // Reset height check (will recalculate based on floor level)
+    checkedHeight = false;
+    // DON'T reset rigY to 0 - it will be set correctly in render loop
+    
+    await renderer.xr.setSession(session);
+    exitBtn.style.display = 'block';
+    
+    console.log('✅ VR session started successfully');
+  }catch(err){ 
+    console.error('❌ VR Error:', err);
+    statusEl.textContent='Could not start VR: '+(err.message||err); 
+  }
+});
+
+// Touch screen = walk forward
+window.addEventListener('touchstart',()=>{if(renderer.xr.isPresenting)keys.forward=true;},{passive:true});
+window.addEventListener('touchend',()=>{if(renderer.xr.isPresenting)keys.forward=false;},{passive:true});
+window.addEventListener('touchcancel',()=>{if(renderer.xr.isPresenting)keys.forward=false;},{passive:true});
+
+renderer.xr.addEventListener('sessionstart',()=>{
+  document.body.classList.add('vr');
+  arvrBtn.textContent='Exit VR';
+  statusEl.textContent='VR Mode Active';
+  vrBody.visible = true; // Show virtual body in VR
+  
+  // Set camera at proper eye height
+  const eyeHeight = floorLevel + EYE_HEIGHT;
+  rigY = eyeHeight;
+  rig.position.set(player.position.x, eyeHeight, player.position.z);
+  
+  console.log('🥽 VR Session Started');
+  console.log(`👁️ Camera Eye Height: ${eyeHeight.toFixed(2)}m`);
+  console.log(`📐 Camera Rotation Reset: Looking straight ahead`);
+  console.log(`✅ You should see INTERIOR view, not ceiling!`);
+});
+
+renderer.xr.addEventListener('sessionend',()=>{
+  document.body.classList.remove('vr');
+  arvrBtn.textContent='Enter VR';
+  keys.forward=false; 
+  camera.position.set(0,0,0); 
+  camera.quaternion.identity(); 
+  rig.position.y=0;
+  needCalibrate=true;
+  statusEl.textContent='VR ended. Tap "Enter VR" to restart.';
+  exitBtn.style.display = 'none';
+  vrBody.visible = false; // Hide virtual body when exiting VR
+  
+  // FIX: Don't try to end session that's already ending
+  // This prevents "Cannot read properties of null (reading 'cancelAnimationFrame')" error
+  console.log('✅ VR session ended cleanly');
+});
+
+// Exit to main viewer
+exitBtn.addEventListener('click', () => {
+  window.location.href = 'index.html';
+});
+
+/* ---------------- Main Render Loop ---------------- */
+const clock=new THREE.Clock();
+
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),.05);
+  
+  if(renderer.xr.isPresenting){
+    // VR Mode: First-person with stereoscopic view
+    const xrCam=renderer.xr.getCamera();
+    xrCam.getWorldDirection(_dir);
+    if(Math.hypot(_dir.x,_dir.z)>0.05) facingYaw=Math.atan2(-_dir.x,-_dir.z);
+    
+    if(getMode()==='gps-true'&&compassOK){
+      const local=facingYaw-rig.rotation.y;
+      rig.rotation.y+=wrapPi(wrapPi(-compassBearing()-local)-rig.rotation.y)*0.04;
+    } else rig.rotation.y=0;
+    
+    // Set camera at proper eye height and follow player
+    rigY = floorLevel + EYE_HEIGHT;
+    move(dt);
+    player.visible = false;
+    player.rotation.y = facingYaw;
+    rig.position.set(player.position.x, rigY, player.position.z);
+    
+    // Animate VR body legs when walking
+    const isMoving = keys.forward || keys.back || keys.left || keys.right || pdrSpeedCur > 0.1 || gpsSpeedCur > 0.1;
+    if (isMoving) {
+      const walkSpeed = (pdrSpeedCur + gpsSpeedCur + (keys.forward || keys.back ? 1 : 0)) * 4;
+      const walkPhase = clock.getElapsedTime() * walkSpeed;
+      
+      // Swing legs
+      leftLeg.rotation.x = Math.sin(walkPhase) * 0.5;
+      rightLeg.rotation.x = Math.sin(walkPhase + Math.PI) * 0.5;
+      
+      // Bob feet
+      leftFoot.position.y = -1.27 + Math.abs(Math.sin(walkPhase)) * 0.05;
+      rightFoot.position.y = -1.27 + Math.abs(Math.sin(walkPhase + Math.PI)) * 0.05;
+      
+      // Swing arms (opposite of legs)
+      leftArm.rotation.x = Math.sin(walkPhase + Math.PI) * 0.3;
+      rightArm.rotation.x = Math.sin(walkPhase) * 0.3;
+      
+      // Bob hands
+      leftHand.position.y = -0.3 + Math.sin(walkPhase + Math.PI) * 0.08;
+      rightHand.position.y = -0.3 + Math.sin(walkPhase) * 0.08;
+      
+      // Torso bob (subtle)
+      vrTorso.position.y = -0.4 + Math.abs(Math.sin(walkPhase * 2)) * 0.02;
+    } else {
+      // Reset to idle position
+      leftLeg.rotation.x *= 0.9;
+      rightLeg.rotation.x *= 0.9;
+      leftArm.rotation.x *= 0.9;
+      rightArm.rotation.x *= 0.9;
+      leftFoot.position.y += (-1.27 - leftFoot.position.y) * 0.1;
+      rightFoot.position.y += (-1.27 - rightFoot.position.y) * 0.1;
+      leftHand.position.y += (-0.3 - leftHand.position.y) * 0.1;
+      rightHand.position.y += (-0.3 - rightHand.position.y) * 0.1;
+      vrTorso.position.y += (-0.4 - vrTorso.position.y) * 0.1;
+    }
+    
+    renderer.render(scene,camera);
+    return;
+  }
+  
+  // Normal view: third-person preview
+  computeLook();
+  facingYaw=yawOf(lookQ);
+  rig.rotation.y=0;
+  move(dt);
+  player.visible=true;
+  player.rotation.y=facingYaw;
+  camera.quaternion.copy(lookQ);
+  _dir.set(0,0,-1).applyQuaternion(lookQ);
+  rig.position.set(player.position.x,0,player.position.z);
+  camera.position.set(-_dir.x*CHASE_DIST,Math.max(1.35-_dir.y*CHASE_DIST,0.25),-_dir.z*CHASE_DIST);
+  renderer.render(scene,camera);
+});
+
+function onResize(){
+  if(renderer.xr.isPresenting) return;
+  renderer.setSize(innerWidth,innerHeight,false);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+
+window.addEventListener('resize',onResize);
+window.addEventListener('orientationchange',()=>setTimeout(()=>{onResize();needCalibrate=true;},300));
+
+</script>
+</body>
+</html>

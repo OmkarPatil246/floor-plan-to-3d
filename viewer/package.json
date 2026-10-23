@@ -1,0 +1,27 @@
+{
+  "name": "floor-plan-vr-viewer",
+  "version": "1.0.0",
+  "description": "Floor Plan 3D Viewer with VR Mobile Sharing",
+  "main": "vr-signaling-server.js",
+  "scripts": {
+    "start": "node vr-signaling-server.js",
+    "start-vr": "node vr-signaling-server.js",
+    "dev": "node vr-signaling-server.js"
+  },
+  "keywords": [
+    "vr",
+    "floor-plan",
+    "3d",
+    "webrtc",
+    "ngrok"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3",
+    "ws": "^8.22.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

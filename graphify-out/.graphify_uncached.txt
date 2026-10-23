@@ -1,0 +1,88 @@
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/.kiro/specs/passive-event-listener-fix/bugfix.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/.kiro/specs/passive-event-listener-fix/tasks.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/GothicCommode_01_CC0/GothicCommode_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/Ottoman_01_CC0/Ottoman_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/Sofa_01_CC0/Sofa_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/mid_century_lounge_chair_CC0/mid_century_lounge_chair/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/modern_arm_chair_01_CC0/modern_arm_chair_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/round_wooden_table_01_CC0/round_wooden_table_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/small_wooden_table_01_CC0/small_wooden_table_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/sofa_02_CC0/sofa_02/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/sofa_03_CC0/sofa_03/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/vintage_wooden_drawer_01_CC0 (1)/vintage_wooden_drawer_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/vintage_wooden_drawer_01_CC0/vintage_wooden_drawer_01/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/assets/wooden_table_02_CC0/wooden_table_02/LICENSE.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/index.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/3d Assets System and  justure system/vr box mode option view.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/AI_RECOMMENDATION_INTEGRATION.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/AI_SETUP_README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/COLLISION_HITBOX_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/CORNER_WINDOW_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/DETECTION_IMPROVEMENTS.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/DOWNLOAD_3D_MODEL.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/ENHANCED_RUN_BAT_SUMMARY.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/EXPORT_FIX_SUMMARY.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/FINAL_STATUS.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/FLOOR_FIX_SUMMARY.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/FLOOR_PLAN_VISUALIZATION_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/FLOOR_TEXTURE_COLOR_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/HOW_TO_RUN.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/LARGE_COMPLEX_BUILDING_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/LINK_ACCESS_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/MOBILE_VIEW_FIXES.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/NETWORK_ACCESS_GUIDE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/NETWORK_SETUP_COMPLETE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/NETWORK_TROUBLESHOOTING.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/PYTHON_LIBRARIES_DOCUMENTATION.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/QUICK_FIX_SUMMARY.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/QUICK_START_AI_RECOMMENDATIONS.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/QUICK_START_GUIDE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/QWEN_MODEL_SETUP.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/RECOMMENDATION_SYSTEM_FIXES.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/backend/requirements.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/index.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/START_HERE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/TEST_AI_RECOMMENDATIONS.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/VERIFICATION_CHECKLIST.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/VR_IMPLEMENTATION_COMPLETE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/VR_IMPLEMENTATION_PLAN.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/VR_MODE_FIX.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/VR_PHASE1_COMPLETE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/VR_PHASE2_COMPLETE.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/configs/default.yaml
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/data/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/docs/hf_model_card.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/environment/index.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/network_access.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/outputs/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/requirements.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/system_access.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/texture_implementation_summary.txt
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/index.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/recommendation_bridge.html
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/weights/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/weights/recommendation_model/README.md
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/public/archgen_logo.png
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/public/favicon.svg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/public/icons.svg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/src/assets/hero.png
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/src/assets/react.svg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/Recommendation/frontend/src/assets/vite.svg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/docs/preview.gif
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/environment/mud.webp
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Ceiling Texture 1.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Ceiling Texture 2.webp
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Ceiling Texture 3.webp
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Door Texture 1.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Door Texture 2.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Door Texture 3.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Floor Texrure 1.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Floor Texture 2.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Floor Texture 3.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Wall Texture 1.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/Assets/Texture/Wall Texture 2.jpg
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/environment/mud.webp
+/c/Users/VIVEK/Desktop/miniprosem5/floor-plan-to-3d/viewer/favicon.svg

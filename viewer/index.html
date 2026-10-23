@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Floorplan to 3D</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+<!-- MediaPipe Hands for Gesture Detection -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
 <style>
   :root {
     --bg: #f4f1ec;
@@ -723,6 +729,303 @@
     filter: contrast(1.04) saturate(1.06);
   }
 
+  /* ========================================================================
+     WALK MODE SELECTION MODAL
+     ======================================================================== */
+  #walk-mode-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  #walk-mode-modal.active {
+    display: flex;
+  }
+  .walk-mode-options {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 500px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  }
+  .walk-mode-options h2 {
+    margin: 0 0 24px 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .walk-option-card {
+    background: white;
+    border: 2px solid var(--hairline);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .walk-option-card:hover {
+    border-color: #28a9ff;
+    box-shadow: 0 4px 16px rgba(40, 169, 255, 0.2);
+    transform: translateY(-2px);
+  }
+  .walk-option-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .walk-option-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .walk-option-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  /* ========================================================================
+     WALK + EDIT MODE: Compact Asset Panel
+     ======================================================================== */
+  #asset-panel {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 180px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-right: 1px solid var(--hairline);
+    padding: 16px 12px;
+    overflow-y: auto;
+    z-index: 15;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  body.walk-edit-active #asset-panel {
+    transform: translateX(0);
+  }
+  #asset-panel h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+  }
+  #asset-panel .asset-category {
+    margin-bottom: 16px;
+  }
+  #asset-panel .category-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  #asset-panel .asset-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 8px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 3px solid rgba(40, 169, 255, 0.2);
+    border-radius: 10px;
+    cursor: grab;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+  #asset-panel .asset-item:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+  }
+  #asset-panel .asset-item:hover {
+    background: #fff;
+    border-color: #28a9ff;
+    border-width: 3px;
+    box-shadow: 0 4px 16px rgba(40, 169, 255, 0.25);
+    transform: scale(1.08) translateX(4px);
+  }
+  #asset-panel .asset-item.selected {
+    background: #e8f5ff;
+    border-color: #28a9ff;
+    border-width: 4px;
+    box-shadow: 0 4px 20px rgba(40, 169, 255, 0.4),
+                inset 0 0 0 2px rgba(40, 169, 255, 0.15);
+    transform: scale(1.1) translateX(6px);
+  }
+  #asset-panel .asset-item.gesture-hover {
+    background: #fff8e1;
+    border-color: #ffa726;
+    border-width: 3px;
+    box-shadow: 0 4px 16px rgba(255, 167, 38, 0.3);
+    transform: scale(1.06) translateX(3px);
+  }
+  #asset-panel .asset-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+  #asset-panel .asset-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* Dustbin for deleting objects */
+  #dustbin {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 80px;
+    height: 80px;
+    background: rgba(220, 38, 38, 0.9);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    z-index: 20;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  body.walk-edit-active #dustbin {
+    display: flex;
+  }
+  #dustbin:hover, #dustbin.drag-over {
+    background: rgba(239, 68, 68, 1);
+    transform: scale(1.1);
+    box-shadow: 0 6px 24px rgba(220, 38, 38, 0.5);
+  }
+
+  /* ========================================================================
+     GESTURE DETECTION: Compact Camera Feed (Bottom Right)
+     ======================================================================== */
+  #gesture-camera-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #28a9ff;
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 20;
+    display: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  body.walk-edit-active #gesture-camera-container {
+    display: block;
+  }
+  #gesture-camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+  #gesture-canvas-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  #gesture-status {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    background: rgba(40, 169, 255, 0.95);
+    color: white;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  #gesture-status.idle { background: rgba(120, 120, 120, 0.8); }
+  #gesture-status.selecting { background: rgba(255, 152, 0, 0.95); animation: pulse 1s infinite; }
+  #gesture-status.placing { background: rgba(76, 175, 80, 0.95); }
+  #gesture-status.moving { background: rgba(33, 150, 243, 0.95); animation: pulse 1s infinite; }
+  #gesture-status.scaling { background: rgba(156, 39, 176, 0.95); }
+  #gesture-status.rotating { background: rgba(233, 30, 99, 0.95); }
+  #gesture-status.deleting { background: rgba(244, 67, 54, 0.95); animation: pulse 0.5s infinite; }
+  
+  /* Hand pointer cursors in 3D view */
+  #leftHandPointer, #rightHandPointer {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.6), 0 0 6px rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+    z-index: 10000;
+    transform: translate(-50%, -50%);
+    transition: all 0.05s ease-out;
+  }
+  
+  #leftHandPointer {
+    background: rgba(0, 255, 0, 0.6);
+  }
+  
+  #rightHandPointer {
+    background: rgba(255, 0, 255, 0.6);
+  }
+  
+  /* Hand pointer cursor in 3D view */
+  .hand-pointer {
+    position: fixed;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.5), 0 0 4px rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+    transition: all 0.05s ease-out;
+  }
+  .hand-pointer.left {
+    background: rgba(0, 255, 0, 0.6);
+    border-color: #00ff00;
+  }
+  .hand-pointer.right {
+    background: rgba(255, 0, 255, 0.6);
+    border-color: #ff00ff;
+  }
+  body.walk-edit-active .hand-pointer {
+    display: block;
+  }
+  .hand-pointer.pinching {
+    transform: scale(0.7);
+    box-shadow: 0 0 20px currentColor;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
   /* Download Modal */
   .modal-overlay {
     display: none;
@@ -1095,6 +1398,8 @@
   }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
 <script type="importmap">
 {
   "imports": {
@@ -1142,6 +1447,14 @@
       <button class="btn" id="toggle-daynight-btn">
         <svg class="btn-icon" id="daynight-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <span class="btn-text" id="daynight-text">Night</span>
+      </button>
+    </div>
+
+    <div class="label">VR Walk Mode</div>
+    <div class="row">
+      <button class="btn primary" id="vr-walk-mode-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background: #000000; border: none; color: #ffffff;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 3v4M8 3v4"/><circle cx="8" cy="13" r="2"/><circle cx="16" cy="13" r="2"/></svg>
+        <span>Enter VR Walk Mode</span>
       </button>
     </div>
 
@@ -1215,14 +1528,6 @@
       <button class="btn primary" id="download-model-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>Download Model</span>
-      </button>
-    </div>
-
-    <div class="label">VR Experience</div>
-    <div class="row">
-      <button class="btn primary" id="vr-mode-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="8" width="22" height="11" rx="2"/><path d="M7 21h10"/><circle cx="8" cy="13" r="2"/><circle cx="16" cy="13" r="2"/></svg>
-        <span>Enter VR Mode</span>
       </button>
     </div>
     
@@ -1446,6 +1751,98 @@
   </div>
 </div>
 
+
+
+<!-- ========================================================================
+     WALK MODE SELECTION MODAL
+     ======================================================================== -->
+<div id="walk-mode-modal">
+  <div class="walk-mode-options">
+    <h2>🚶 Choose Walk Mode</h2>
+    <div class="walk-option-card" data-mode="simple">
+      <div class="walk-option-icon">🎮</div>
+      <h3>Simple Walkthrough</h3>
+      <p>Walk and explore using keyboard (WASD) and mouse. Perfect for viewing your floor plan.</p>
+    </div>
+    <div class="walk-option-card" data-mode="interactive">
+      <div class="walk-option-icon">�️</div>
+      <h3>Interactive Assets Walkthrough</h3>
+      <p>Walk + place furniture using hand gestures. Camera-based gesture control with pinch, drag, scale & rotate.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================
+     WALK + EDIT MODE: Compact Asset Panel
+     ======================================================================== -->
+<div id="asset-panel" hidden>
+  <h3>🪑 Assets</h3>
+  
+  <div class="asset-category">
+    <div class="category-title">Seating</div>
+    <div class="asset-item" data-asset="sofa_01" draggable="true">
+      <div class="asset-icon">🛋️</div>
+      <div class="asset-name">Sofa 1</div>
+    </div>
+    <div class="asset-item" data-asset="sofa_02" draggable="true">
+      <div class="asset-icon">🛋️</div>
+      <div class="asset-name">Sofa 2</div>
+    </div>
+    <div class="asset-item" data-asset="modern_arm_chair" draggable="true">
+      <div class="asset-icon">🪑</div>
+      <div class="asset-name">Chair</div>
+    </div>
+    <div class="asset-item" data-asset="ottoman" draggable="true">
+      <div class="asset-icon">💺</div>
+      <div class="asset-name">Ottoman</div>
+    </div>
+  </div>
+  
+  <div class="asset-category">
+    <div class="category-title">Tables</div>
+    <div class="asset-item" data-asset="round_table" draggable="true">
+      <div class="asset-icon">⭕</div>
+      <div class="asset-name">Round</div>
+    </div>
+    <div class="asset-item" data-asset="small_table" draggable="true">
+      <div class="asset-icon">�</div>
+      <div class="asset-name">Small</div>
+    </div>
+  </div>
+  
+  <div class="asset-category">
+    <div class="category-title">Storage</div>
+    <div class="asset-item" data-asset="drawer" draggable="true">
+      <div class="asset-icon">🗄️</div>
+      <div class="asset-name">Drawer</div>
+    </div>
+    <div class="asset-item" data-asset="fridge" draggable="true">
+      <div class="asset-icon">🧊</div>
+      <div class="asset-name">Fridge</div>
+    </div>
+  </div>
+</div>
+
+<!-- Dustbin for deleting objects -->
+<div id="dustbin">🗑️</div>
+
+<!-- Hand pointer indicators -->
+<div class="hand-pointer left" id="left-hand-pointer"></div>
+<div class="hand-pointer right" id="right-hand-pointer"></div>
+
+<!-- ========================================================================
+     GESTURE DETECTION: Camera Feed with Hand Tracking Overlay
+     ======================================================================== -->
+<div id="gesture-camera-container">
+  <video id="gesture-camera-video" autoplay playsinline></video>
+  <canvas id="gesture-canvas-overlay"></canvas>
+  <div id="gesture-status" class="idle">Ready</div>
+</div>
+
+<!-- Hand pointer visual indicators -->
+<div id="leftHandPointer" style="display: none;"></div>
+<div id="rightHandPointer" style="display: none;"></div>
+
 <div id="walkthrough-hud" hidden>
   <div class="hud-pill">
     <span><strong>WASD</strong> Walk</span>
@@ -1616,12 +2013,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { createCeilingAssembly } from "./Assets/ceiling.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 import { createDoorMesh } from "./Assets/door.js";
 import { EditMode } from "./Assets/editMode.js";
 import { OutdoorEnvironment } from "./Assets/environment.js";
+import { VRIntegration } from "./vr-integration.js";
 // door handles, window sashes, etc.) intended for interactive use. For the
 // Mask R-CNN polygon pipeline we need simple polygon-extruder functions
 // instead — defined below after the materials.
@@ -3485,13 +3885,13 @@ document.getElementById('edit-model-btn').addEventListener('click', () => {
 });
 
 // AI Recommendation button - Navigate to recommendations in same page
-let lastDetectionResult = null; // Store last detection result for recommendations
+window.lastDetectionResult = null; // Store last detection result for recommendations (global scope for VR access)
 
 document.getElementById('ai-recommendation-btn').addEventListener('click', async () => {
   const btn = document.getElementById('ai-recommendation-btn');
   const originalText = btn.querySelector('span').textContent;
   
-  if (!lastDetectionResult) {
+  if (!window.lastDetectionResult) {
     alert('Please upload and process a floor plan first before getting recommendations.');
     return;
   }
@@ -3504,7 +3904,7 @@ document.getElementById('ai-recommendation-btn').addEventListener('click', async
     const response = await fetch('/generate-recommendation-input', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ detection_result: lastDetectionResult })
+      body: JSON.stringify({ detection_result: window.lastDetectionResult })
     });
     
     if (!response.ok) {
@@ -3518,26 +3918,19 @@ document.getElementById('ai-recommendation-btn').addEventListener('click', async
     // Prepare the floor plan data for recommendations
     let floorPlanData = result.structured_document;
     
-    // Ensure we have the correct structure
-    if (floorPlanData.floorPlan && Array.isArray(floorPlanData.floorPlan.rooms)) {
-      floorPlanData = { rooms: floorPlanData.floorPlan.rooms };
-    } else if (!floorPlanData.rooms && floorPlanData.floorPlan) {
-      floorPlanData = floorPlanData.floorPlan;
-    }
-    
-    // Validate we have rooms
-    if (!floorPlanData.rooms || !Array.isArray(floorPlanData.rooms) || floorPlanData.rooms.length === 0) {
+    // Validate we have the floorPlan structure with rooms
+    if (!floorPlanData.floorPlan || !floorPlanData.floorPlan.rooms || floorPlanData.floorPlan.rooms.length === 0) {
       throw new Error('No rooms found in the floor plan. Please ensure the floor plan has been processed correctly.');
     }
     
-    console.log(`Navigating to recommendations with ${floorPlanData.rooms.length} rooms`);
+    console.log(`Navigating to recommendations with ${floorPlanData.floorPlan.rooms.length} rooms`);
     
-    // Store in sessionStorage for the recommendation page
+    // Store in sessionStorage for the recommendation page (keep full structure with image)
     sessionStorage.setItem('floorplan_data', JSON.stringify(floorPlanData));
     
     // Navigate directly to the recommendation frontend in the same page
-    // The recommendation frontend is on port 5173
-    const recommendationUrl = `http://localhost:5173/#floorplan=${encodeURIComponent(JSON.stringify(floorPlanData))}`;
+    // The recommendation frontend is on port 5176
+    const recommendationUrl = `http://localhost:5176/#floorplan=${encodeURIComponent(JSON.stringify(floorPlanData))}`;
     window.location.href = recommendationUrl;
     
   } catch (error) {
@@ -3545,6 +3938,145 @@ document.getElementById('ai-recommendation-btn').addEventListener('click', async
     alert('Failed to generate recommendations: ' + error.message);
     btn.disabled = false;
     btn.querySelector('span').textContent = originalText;
+  }
+});
+
+// Prepare scene for VR export by ensuring all elements are visible and properly positioned
+function prepareForVRExport() {
+  const undo = [];
+  if (showingOriginal) setShowOriginal(false, false);
+  forceCompleteAllAnimations();               // walls AND ceiling
+
+  // Outdoor mode moves/scales planGroup, so export in neutral space
+  const p0 = planGroup.position.clone(), r0 = planGroup.rotation.clone(), s0 = planGroup.scale.clone();
+  planGroup.position.set(0, 0, 0); planGroup.rotation.set(0, 0, 0); planGroup.scale.set(1, 1, 1);
+  undo.push(() => { planGroup.position.copy(p0); planGroup.rotation.copy(r0); planGroup.scale.copy(s0); });
+
+  planGroup.traverse((o) => {
+    const u = o.userData || {};
+    const isWash = u.isCeilingScatter || u.isWallGrazing || u.isCoveGlow || u.isDownlightPool || u.isCeilingSpot;
+    if ((u.isCeiling || isWash || u.isDownlightTrim || u.isDownlightLens || u.isInteriorSpot) && !o.visible) {
+      o.visible = true;
+      undo.push(() => { o.visible = false; });
+    }
+    if (!o.isMesh) return;
+    const flags = [];
+    if (isWash || o.material?.blending === THREE.AdditiveBlending) flags.push('add');
+    if (o.castShadow)    flags.push('cast');
+    if (o.receiveShadow) flags.push('recv');
+    const oldName = o.name;
+    o.name = 'VRTAG_' + flags.join('_') + '__' + (oldName || 'mesh').replace(/[^A-Za-z0-9]/g, '');
+    undo.push(() => { o.name = oldName; });
+  });
+
+  planGroup.updateMatrixWorld(true);          // refresh .matrix before GLTFExporter reads it
+  return () => undo.forEach(fn => fn());
+}
+
+// VR Walk Mode button - Navigate to separate VR page with your home
+document.getElementById('vr-walk-mode-btn').addEventListener('click', async () => {
+  try {
+    // Check if there's a generated model
+    if (!planGroup || planGroup.children.length === 0) {
+      alert('Please generate a 3D floor plan first before entering VR mode.');
+      return;
+    }
+    
+    console.log('🏠 Exporting EXACT 3D home model for VR Walk Mode...');
+    console.log(`📦 planGroup has ${planGroup.children.length} objects`);
+    
+    const restoreAfterExport = prepareForVRExport();
+    
+    // Export the ACTUAL planGroup as GLB using GLTFExporter with DRACO compression for mobile
+    const exporter = new GLTFExporter();
+    
+    console.log('🗜️ Compressing model for mobile VR (this may take a moment)...');
+    
+    exporter.parse(
+      planGroup, // Export the actual loaded 3D home
+      async (gltfData) => {
+        restoreAfterExport();
+        
+        const blob = new Blob([gltfData], { type: 'application/octet-stream' });
+        const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+        console.log(`✅ Exported GLB model: ${sizeMB} MB`);
+        
+        // ALWAYS use IndexedDB for VR (safer for mobile)
+        console.log('💾 Saving to IndexedDB for VR compatibility...');
+        
+        try {
+          // Open IndexedDB
+          const dbRequest = indexedDB.open('VRWalkModeDB', 1);
+          
+          dbRequest.onerror = () => {
+            console.error('❌ IndexedDB unavailable');
+            alert(`Model is ${sizeMB} MB. IndexedDB required for VR mode.`);
+          };
+          
+          dbRequest.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('models')) {
+              db.createObjectStore('models');
+            }
+          };
+          
+          dbRequest.onsuccess = (event) => {
+            const db = event.target.result;
+            const transaction = db.transaction(['models'], 'readwrite');
+            const store = transaction.objectStore('models');
+            
+            // Store the blob directly (much more efficient than base64)
+            const sceneData = {
+              timestamp: Date.now(),
+              hasModel: true,
+              wallHeight: WALL_HEIGHT,
+              lighting: { night: isNightMode, roomIntensity: lightingConfig.roomIntensity, roomColor: lightingConfig.roomColor },
+              modelFormat: 'glb',
+              modelBlob: blob, // Store blob directly
+              sizeMB: sizeMB,
+              cameraPosition: {
+                x: camera.position.x,
+                y: camera.position.y,
+                z: camera.position.z
+              },
+              planGroupPosition: {
+                x: planGroup.position.x,
+                y: planGroup.position.y,
+                z: planGroup.position.z
+              }
+            };
+            
+            const putRequest = store.put(sceneData, 'vrScene');
+            
+            putRequest.onsuccess = () => {
+              console.log(`✅ Saved ${sizeMB} MB to IndexedDB!`);
+              console.log('📱 Opening VR mode (mobile compatible)...');
+              // Signal to VR page to use IndexedDB
+              sessionStorage.setItem('vrUseIndexedDB', 'true');
+              window.location.href = 'vr-walk-mode.html';
+            };
+            
+            putRequest.onerror = () => {
+              console.error('❌ Failed to save to IndexedDB');
+              alert(`Failed to save model (${sizeMB} MB). Try a simpler floor plan.`);
+            };
+          };
+        } catch (error) {
+          console.error('❌ IndexedDB error:', error);
+          alert(`Failed to save model (${sizeMB} MB). IndexedDB may not be supported.`);
+        }
+      },
+      (error) => {
+        restoreAfterExport();
+        console.error('❌ GLTFExporter failed:', error);
+        alert('Failed to export model for VR mode: ' + error.message);
+      },
+      { binary: true } // Export as GLB (binary format)
+    );
+    
+  } catch (error) {
+    console.error('❌ Error preparing VR Walk Mode:', error);
+    alert('Failed to enter VR mode: ' + error.message);
   }
 });
 
@@ -3909,6 +4441,10 @@ function tick(now) {
         });
       }
     }
+    
+    // CRITICAL: Render INSIDE VR block and return!
+    renderer.render(scene, camera);
+    return; // Don't run normal rendering code
   } else if (cameraTween.active && cameraTween.fromPos && cameraTween.toPos && cameraTween.fromTarget && cameraTween.toTarget) {
     const t = Math.min(1, (now - cameraTween.t0) / cameraTween.duration);
     const eased = 1 - Math.pow(1 - t, 3);
@@ -3988,6 +4524,9 @@ function clearPlan() {
   _lastWalkRotX = 0;
   _lastWalkRotY = 0;
 }
+
+// Make loadPlan globally accessible for VR mode
+window.loadPlan = loadPlan;
 
 async function loadPlan(data) {
   clearPlan();
@@ -4366,6 +4905,28 @@ async function loadPlan(data) {
   if (typeof syncCeilingVisibility === 'function') {
     syncCeilingVisibility();
   }
+  
+  // Apply active day/night lighting to all newly created cove and room lights
+  applyEnvironment(isNightMode ? nightPreset : dayPreset);
+  updateRoomLighting();
+  updateCoveLighting();
+
+  // Regenerate hitboxes if they were visible
+  if (showHitboxes) {
+    // Wait a bit for all geometry to be added, then regenerate hitboxes
+    setTimeout(() => {
+      updateHitboxVisibility(true);
+    }, 100);
+  }
+
+  // ── Environment: place house in landscape if environment mode is active ──
+  if (_envEnabled && currentFraming) {
+    outdoorEnv.placeHouse(planGroup, currentFraming.radius);
+  }
+  
+  // Load any previously placed assets from localStorage
+  loadPlacedAssets().catch(err => console.error('Failed to load placed assets:', err));
+}
 
 /**
  * Detects discrete room cavities enclosed within the floorplan structure.
@@ -4848,7 +5409,6 @@ function simplifyPixelContour(pts, epsilon) {
       let sqDist = getSqDist(items[i], items[start], items[end]);
       if (sqDist > maxSqDist) {
         index = i;
-        maxSqDist = sqEpsilon < sqDist ? i : index;
         maxSqDist = sqDist;
       }
     }
@@ -4882,25 +5442,6 @@ function simplifyPixelContour(pts, epsilon) {
     }
   }
   return cleaned.length >= 3 ? cleaned : out;
-}
-  
-  // Apply active day/night lighting to all newly created cove and room lights
-  applyEnvironment(isNightMode ? nightPreset : dayPreset);
-  updateRoomLighting();
-  updateCoveLighting();
-
-  // Regenerate hitboxes if they were visible
-  if (showHitboxes) {
-    // Wait a bit for all geometry to be added, then regenerate hitboxes
-    setTimeout(() => {
-      updateHitboxVisibility(true);
-    }, 100);
-  }
-
-  // ── Environment: place house in landscape if environment mode is active ──
-  if (_envEnabled && currentFraming) {
-    outdoorEnv.placeHouse(planGroup, currentFraming.radius);
-  }
 }
 
 // -----------------------------------------------------------------------------
@@ -5066,7 +5607,7 @@ async function fetchAndLoad(url, init) {
     const data = await res.json();
     
     // Store detection result for AI recommendations
-    lastDetectionResult = data;
+    window.lastDetectionResult = data;
     console.log('Detection result stored for AI recommendations');
     
     status.textContent = summarize(data);
@@ -5502,7 +6043,6 @@ if (coveLightColor) {
 // -----------------------------------------------------------------------------
 // Walkthrough / FPS Mode (PointerLock + WASD navigation)
 // -----------------------------------------------------------------------------
-const walkthroughBtn = document.getElementById("walkthrough-btn");
 const walkthroughHud = document.getElementById("walkthrough-hud");
 const crosshair = document.getElementById("crosshair");
 const fpControls = new PointerLockControls(camera, canvas);
@@ -6168,6 +6708,7 @@ window.addEventListener("pointerup", (e) => {
   if (dx >= 5 || dy >= 5) return; // ignore dragging
 
   if (isWalkthrough) {
+    // Regular walkthrough: open doors
     const door = getTargetedDoor();
     if (door) {
       door.userData.toggle(camera.position.clone());
@@ -6295,6 +6836,9 @@ fpControls.addEventListener("unlock", () => {
   if (!_envEnabled) scene.fog = sceneFog;
   // Restore gentle orbit vignette
   document.body.classList.remove('walkthrough-active');
+  
+  // Exit walk mode properly
+  exitWalkMode();
 
   // Smoothly expand #ui back to full controls
   if (uiContainer) {
@@ -6360,13 +6904,1351 @@ function startWalkthroughMode() {
   fpControls.lock();
 }
 
+// =============================================================================
+// Walk Mode - Show Modal to Choose Mode Type
+// =============================================================================
+const walkthroughBtn = document.getElementById("walkthrough-btn");
+const walkModeModal = document.getElementById("walk-mode-modal");
+let currentWalkMode = null; // 'simple' or 'interactive'
+
 walkthroughBtn.addEventListener("click", () => {
   if (fpControls.isLocked) {
+    // Exit walk mode
     fpControls.unlock();
   } else {
-    startWalkthroughMode();
+    // Show modal to choose mode
+    walkModeModal.classList.add('active');
   }
 });
+
+// Handle mode selection from modal
+document.querySelectorAll('.walk-option-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const mode = card.dataset.mode;
+    currentWalkMode = mode;
+    walkModeModal.classList.remove('active');
+    
+    if (mode === 'simple') {
+      startSimpleWalkthrough();
+    } else if (mode === 'interactive') {
+      startInteractiveWalkthrough();
+    }
+  });
+});
+
+// Close modal if clicked outside
+walkModeModal.addEventListener('click', (e) => {
+  if (e.target === walkModeModal) {
+    walkModeModal.classList.remove('active');
+  }
+});
+
+function startSimpleWalkthrough() {
+  console.log('🚶 Starting Simple Walkthrough');
+  currentWalkMode = 'simple';
+  startWalkthroughMode();
+}
+
+function startInteractiveWalkthrough() {
+  console.log('🖐️ Starting Interactive Assets Walkthrough');
+  currentWalkMode = 'interactive';
+  
+  // Show asset panel
+  document.body.classList.add('walk-edit-active');
+  document.getElementById('asset-panel').hidden = false;
+  
+  // Initialize asset panel click handlers
+  initializeAssetPanelHandlers();
+  
+  // Start gesture camera
+  if (gestureSystem) {
+    setTimeout(() => {
+      gestureSystem.startCamera().catch(err => {
+        console.error('Failed to start camera:', err);
+        alert('Camera access is required for Interactive mode. Please allow camera access and try again.');
+      });
+    }, 500); // Delay to prevent camera popup before pointer lock
+  }
+  
+  // Start walkthrough
+  startWalkthroughMode();
+}
+
+// Initialize asset panel click handlers
+function initializeAssetPanelHandlers() {
+  const assetItems = document.querySelectorAll('.asset-item');
+  
+  // IMPORTANT: NO default selection - user MUST click/pinch to select
+  selectedAsset = null;
+  
+  assetItems.forEach((item, index) => {
+    // Remove any existing selected class
+    item.classList.remove('selected');
+    
+    // Click/Touch handler - Starts drag immediately
+    item.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      // Get asset ID from data attribute
+      const assetId = item.dataset.asset;
+      
+      // Start dragging immediately (like reference project)
+      selectedAsset = assetId;
+      
+      // Update gesture system
+      if (gestureSystem) {
+        gestureSystem.startDraggingFromPanel(index, assetId);
+      }
+      
+      // Visual feedback - highlight selected
+      assetItems.forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      
+      console.log(`🖐️ Started dragging: ${assetId} (pinch to place)`);
+    });
+  });
+  
+  console.log(`✅ Initialized ${assetItems.length} asset panel handlers (NO default selection)`);
+}
+
+function exitWalkMode() {
+  if (currentWalkMode === 'interactive') {
+    // Stop gesture camera
+    if (gestureSystem) {
+      gestureSystem.stopCamera();
+    }
+    
+    // Hide asset panel
+    document.body.classList.remove('walk-edit-active');
+    document.getElementById('asset-panel').hidden = true;
+    
+    // Save placed assets
+    savePlacedAssets();
+  }
+  
+  currentWalkMode = null;
+}
+
+// =============================================================================
+// Asset Management & Persistence
+// =============================================================================
+const placedAssets = [];
+
+// Asset configuration (paths to GLB files) - Proper scales relative to building scale
+// Building scale is approximately 1 unit = 1 meter in real world
+// Furniture scales are adjusted to match realistic proportions
+const assetConfig = {
+  sofa_01: { path: '/assets/Sofa_01_CC0/Sofa_01/Sofa_01.glb', scale: 0.5, yOffset: 0 },  // Sofa: ~2m wide in real life
+  sofa_02: { path: '/assets/sofa_02_CC0/sofa_02/sofa_02.glb', scale: 0.5, yOffset: 0 },
+  modern_arm_chair: { path: '/assets/modern_arm_chair_01_CC0/modern_arm_chair_01/modern_arm_chair_01.glb', scale: 0.4, yOffset: 0 },  // Chair: ~0.8m wide
+  ottoman: { path: '/assets/Ottoman_01_CC0/Ottoman_01/Ottoman_01.glb', scale: 0.35, yOffset: 0 },  // Ottoman: smaller furniture
+  round_table: { path: '/assets/round_wooden_table_01_CC0/round_wooden_table_01/round_wooden_table_01.glb', scale: 0.45, yOffset: 0 },  // Table: ~1m diameter
+  small_table: { path: '/assets/small_wooden_table_01_CC0/small_wooden_table_01/small_wooden_table_01.glb', scale: 0.4, yOffset: 0 },  // Small table
+  drawer: { path: '/assets/vintage_wooden_drawer_01_CC0/vintage_wooden_drawer_01/vintage_wooden_drawer_01.glb', scale: 0.45, yOffset: 0 },  // Drawer unit
+  fridge: { path: '/assets/fridge.glb', scale: 0.6, yOffset: 0 }  // Fridge: ~0.6m wide, 1.8m tall
+};
+
+// Load GLB model with Draco compression support
+const gltfLoader = new GLTFLoader();
+const dracoLoader = new DRACOLoader();
+// Set the path to the Draco decoder (use jsdelivr CDN for better reliability)
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+gltfLoader.setDRACOLoader(dracoLoader);
+console.log('✅ DRACOLoader configured for GLTFLoader');
+
+function loadAssetModel(assetId) {
+  return new Promise((resolve, reject) => {
+    const config = assetConfig[assetId];
+    if (!config) {
+      reject(new Error(`Asset ${assetId} not found`));
+      return;
+    }
+    
+    gltfLoader.load(
+      config.path,
+      (gltf) => {
+        const model = gltf.scene;
+        model.scale.setScalar(config.scale);
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        resolve(model);
+      },
+      undefined,
+      (error) => reject(error)
+    );
+  });
+}
+
+// Save placed assets to localStorage - DISABLED TO PREVENT AUTO-LOADING
+function savePlacedAssets() {
+  // ⚠️ DISABLED: Auto-save feature turned off to keep scene clean on reload
+  // Assets will NOT be saved to localStorage anymore
+  // This ensures every page load starts with an empty scene
+  
+  console.log(`ℹ️ Auto-save disabled - ${placedAssets.length} assets NOT saved to localStorage`);
+  console.log('💡 Scene will be empty on next reload (this is intentional)');
+  
+  // OLD CODE DISABLED
+  /*
+  const assetsData = placedAssets.map(asset => ({
+    assetId: asset.userData.assetId,
+    position: {
+      x: asset.position.x,
+      y: asset.position.y,
+      z: asset.position.z
+    },
+    rotation: {
+      x: asset.rotation.x,
+      y: asset.rotation.y,
+      z: asset.rotation.z
+    },
+    scale: {
+      x: asset.scale.x,
+      y: asset.scale.y,
+      z: asset.scale.z
+    }
+  }));
+  
+  localStorage.setItem('placedAssets', JSON.stringify(assetsData));
+  console.log(`💾 Saved ${assetsData.length} placed assets`);
+  */
+}
+
+// Load placed assets from localStorage - DISABLED FOR CLEAN START
+async function loadPlacedAssets() {
+  // ⚠️ AUTO-CLEAR: Clear all saved assets on startup to ensure clean scene
+  console.log('🚀 AUTO-CLEAR: Removing all saved assets from localStorage...');
+  
+  try {
+    // Clear the specific asset storage
+    localStorage.removeItem('placedAssets');
+    sessionStorage.removeItem('placedAssets');
+    
+    // Also clear any other related storage keys
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('asset') || key.includes('furniture') || key.includes('placed'))) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`  🧹 Removed storage key: ${key}`);
+    });
+    
+    console.log('✅ AUTO-CLEAR COMPLETE: No saved assets will be loaded');
+    console.log('📦 Scene starts empty - place furniture from asset panel');
+    
+  } catch (error) {
+    console.error('❌ Failed to clear saved assets:', error);
+  }
+  
+  // OLD CODE DISABLED - DO NOT LOAD SAVED ASSETS
+  /*
+  const savedData = localStorage.getItem('placedAssets');
+  if (!savedData) {
+    console.log('No saved assets found');
+    return;
+  }
+  
+  try {
+    const assetsData = JSON.parse(savedData);
+    console.log(`📦 Loading ${assetsData.length} saved assets...`);
+    
+    for (const data of assetsData) {
+      try {
+        const model = await loadAssetModel(data.assetId);
+        
+        model.position.set(data.position.x, data.position.y, data.position.z);
+        model.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
+        model.scale.set(data.scale.x, data.scale.y, data.scale.z);
+        
+        model.userData.isPlacedAsset = true;
+        model.userData.assetId = data.assetId;
+        
+        planGroup.add(model);
+        placedAssets.push(model);
+        
+        console.log(`✅ Loaded ${data.assetId}`);
+      } catch (error) {
+        console.error(`❌ Failed to load ${data.assetId}:`, error);
+      }
+    }
+    
+    console.log('✅ All assets loaded');
+  } catch (error) {
+    console.error('❌ Failed to parse saved assets:', error);
+  }
+  */
+}
+
+// =============================================================================
+// GESTURE DETECTION SYSTEM - MediaPipe Hands Integration
+// =============================================================================
+let gestureSystem = null;
+let mediaPipeHands = null;
+let mediaPipeCamera = null;
+let selectedAsset = null; // Currently selected asset for placement
+
+class GestureDetectionSystem {
+  constructor() {
+    this.video = document.getElementById('gesture-camera-video');
+    this.canvas = document.getElementById('gesture-canvas-overlay');
+    this.ctx = this.canvas.getContext('2d');
+    this.statusEl = document.getElementById('gesture-status');
+    
+    this.isActive = false;
+    this.leftHand = null;
+    this.rightHand = null;
+    this.prevLeftHand = null;
+    this.prevRightHand = null;
+    
+    // Gesture state
+    this.selectedAssetIndex = -1;
+    this.isDragging = false;
+    this.isScaling = false;
+    this.isRotating = false;
+    this.isDeletingObject = false;
+    this.isMovingPlacedObject = false; // NEW: Track if moving an already-placed object
+    this.movingObject = null; // NEW: Reference to object being moved
+    this.movingObjectOffset = null; // NEW: Offset from hand to object center
+    this.draggedObject = null;
+    this.scalingObject = null;
+    this.rotatingObject = null;
+    
+    // Selection state flags to prevent immediate drag after selection
+    this.justSelected = false;
+    this.wasSelectingLeft = false;
+    this.wasSelectingRight = false;
+    
+    // Placement state - prevents multiple placements during one drag
+    this.hasPlacedThisDrag = false;
+    
+    // Smoothing buffers for stability
+    this.leftPinchHistory = [];
+    this.rightPinchHistory = [];
+    this.HISTORY_SIZE = 3;
+    
+    // Pinch detection thresholds
+    this.PINCH_THRESHOLD = 0.08; // Distance threshold for pinch
+    this.PINCH_RELEASE_THRESHOLD = 0.12; // Hysteresis for release
+    
+    this.initMediaPipe();
+  }
+  
+  async initMediaPipe() {
+    try {
+      console.log('🎥 Initializing MediaPipe Hands...');
+      
+      // Wait for MediaPipe to load
+      if (!window.Hands) {
+        await new Promise(resolve => {
+          const checkInterval = setInterval(() => {
+            if (window.Hands) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+      
+      // Initialize MediaPipe Hands
+      this.hands = new Hands({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }
+      });
+      
+      this.hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7,
+        selfieMode: true  // Mirror mode for natural interaction
+      });
+      
+      this.hands.onResults((results) => this.onHandsDetected(results));
+      
+      console.log('✅ MediaPipe Hands initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize MediaPipe:', error);
+      this.statusEl.textContent = 'Camera initialization failed';
+      this.statusEl.className = 'idle';
+    }
+  }
+  
+  async startCamera() {
+    if (this.isActive) return;
+    
+    try {
+      console.log('📹 Starting camera...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
+      });
+      
+      this.video.srcObject = stream;
+      this.isActive = true;
+      
+      // Wait for video to be ready
+      await new Promise((resolve) => {
+        this.video.onloadedmetadata = () => {
+          this.canvas.width = this.video.videoWidth;
+          this.canvas.height = this.video.videoHeight;
+          resolve();
+        };
+      });
+      
+      // Wait for Camera utility to load
+      if (!window.Camera) {
+        await new Promise(resolve => {
+          const checkInterval = setInterval(() => {
+            if (window.Camera) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+      
+      // Start MediaPipe camera
+      this.mediaPipeCamera = new Camera(this.video, {
+        onFrame: async () => {
+          if (this.hands && this.isActive) {
+            await this.hands.send({image: this.video});
+          }
+        },
+        width: 1280,
+        height: 720
+      });
+      
+      this.mediaPipeCamera.start();
+      
+      console.log('✅ Camera started successfully');
+      this.statusEl.textContent = 'Show both hands to begin';
+      this.statusEl.className = 'idle';
+      
+    } catch (error) {
+      console.error('❌ Camera access denied:', error);
+      this.statusEl.textContent = 'Camera access denied';
+      this.statusEl.className = 'idle';
+      alert('Please allow camera access for gesture control');
+    }
+  }
+  
+  stopCamera() {
+    if (!this.isActive) return;
+    
+    this.isActive = false;
+    
+    if (this.mediaPipeCamera) {
+      this.mediaPipeCamera.stop();
+    }
+    
+    if (this.video.srcObject) {
+      this.video.srcObject.getTracks().forEach(track => track.stop());
+      this.video.srcObject = null;
+    }
+    
+    this.leftHand = null;
+    this.rightHand = null;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    console.log('🛑 Camera stopped');
+  }
+  
+  onHandsDetected(results) {
+    if (!this.isActive) return;
+    
+    // Clear canvas
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Update hand data
+    this.prevLeftHand = this.leftHand;
+    this.prevRightHand = this.rightHand;
+    this.leftHand = null;
+    this.rightHand = null;
+    
+    if (results.multiHandLandmarks && results.multiHandedness) {
+      for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+        const landmarks = results.multiHandLandmarks[i];
+        const handedness = results.multiHandedness[i].label; // "Left" or "Right"
+        
+        // Draw hand skeleton
+        this.drawHand(landmarks, handedness);
+        
+        // Store hand data
+        const handData = {
+          landmarks: landmarks,
+          label: handedness
+        };
+        
+        if (handedness === 'Left') {
+          this.leftHand = handData;
+        } else {
+          this.rightHand = handData;
+        }
+      }
+    }
+    
+    // Process gestures
+    this.processGestures();
+  }
+  
+  drawHand(landmarks, handedness) {
+    const color = handedness === 'Left' ? '#00ff00' : '#ff00ff';
+    
+    // Draw connections
+    const connections = [
+      [0,1],[1,2],[2,3],[3,4],  // Thumb
+      [0,5],[5,6],[6,7],[7,8],  // Index
+      [0,9],[9,10],[10,11],[11,12],  // Middle
+      [0,13],[13,14],[14,15],[15,16],  // Ring
+      [0,17],[17,18],[18,19],[19,20],  // Pinky
+      [5,9],[9,13],[13,17]  // Palm
+    ];
+    
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 2;
+    
+    connections.forEach(([start, end]) => {
+      const startPoint = landmarks[start];
+      const endPoint = landmarks[end];
+      
+      this.ctx.beginPath();
+      this.ctx.moveTo(startPoint.x * this.canvas.width, startPoint.y * this.canvas.height);
+      this.ctx.lineTo(endPoint.x * this.canvas.width, endPoint.y * this.canvas.height);
+      this.ctx.stroke();
+    });
+    
+    // Draw landmarks
+    landmarks.forEach((landmark, index) => {
+      const x = landmark.x * this.canvas.width;
+      const y = landmark.y * this.canvas.height;
+      
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, index === 4 || index === 8 ? 6 : 4, 0, 2 * Math.PI);
+      this.ctx.fillStyle = color;
+      this.ctx.fill();
+    });
+  }
+  
+  isPinching(hand) {
+    if (!hand) return false;
+    
+    const thumb = hand.landmarks[4];
+    const index = hand.landmarks[8];
+    
+    const dx = thumb.x - index.x;
+    const dy = thumb.y - index.y;
+    const dz = (thumb.z || 0) - (index.z || 0);
+    
+    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    
+    return distance < this.PINCH_THRESHOLD;
+  }
+  
+  getPinchDistance(hand) {
+    if (!hand) return 999;
+    
+    const thumb = hand.landmarks[4];
+    const index = hand.landmarks[8];
+    
+    const dx = thumb.x - index.x;
+    const dy = thumb.y - index.y;
+    const dz = (thumb.z || 0) - (index.z || 0);
+    
+    return Math.sqrt(dx*dx + dy*dy + dz*dz);
+  }
+  
+  smoothPinch(hand, history) {
+    const isPinch = this.isPinching(hand);
+    history.push(isPinch ? 1 : 0);
+    
+    if (history.length > this.HISTORY_SIZE) {
+      history.shift();
+    }
+    
+    const sum = history.reduce((a, b) => a + b, 0);
+    return sum >= Math.ceil(this.HISTORY_SIZE / 2);
+  }
+  
+  processGestures() {
+    const leftPinch = this.leftHand ? this.smoothPinch(this.leftHand, this.leftPinchHistory) : false;
+    const rightPinch = this.rightHand ? this.smoothPinch(this.rightHand, this.rightPinchHistory) : false;
+    
+    // Only process gestures if in interactive mode
+    if (currentWalkMode !== 'interactive') return;
+    
+    // GESTURE 0: Check if pinching on an already-placed object to move it
+    if (!this.isMovingPlacedObject && (leftPinch || rightPinch) && !this.isDragging && !this.justSelected) {
+      const hand = leftPinch ? this.leftHand : this.rightHand;
+      const objectToMove = this.getPlacedObjectAtHandPosition(hand);
+      
+      if (objectToMove) {
+        console.log('🎯 Pinched on placed object - entering move mode');
+        this.startMovingPlacedObject(objectToMove);
+        return; // Skip other gesture processing
+      }
+    }
+    
+    // If moving a placed object, update its position
+    if (this.isMovingPlacedObject && (leftPinch || rightPinch)) {
+      const hand = leftPinch ? this.leftHand : this.rightHand;
+      this.updatePlacedObjectPosition(hand);
+      return; // Skip other gesture processing
+    }
+    
+    // If released pinch while moving, stop moving
+    if (this.isMovingPlacedObject && !leftPinch && !rightPinch) {
+      this.stopMovingPlacedObject();
+      return;
+    }
+    
+    // GESTURE 1: Pinch on asset panel to select (ONLY if no object currently placed)
+    // User must release pinch and pinch again to start placing
+    if (!this.draggedObject && !this.isDragging && !this.justSelected && !this.isMovingPlacedObject) {
+      if (leftPinch && !rightPinch && !this.wasSelectingLeft) {
+        this.selectAssetFromList(this.leftHand);
+        this.wasSelectingLeft = true;
+        this.justSelected = true;
+        // Clear justSelected flag after brief delay
+        setTimeout(() => { this.justSelected = false; }, 300);
+      } else if (rightPinch && !leftPinch && !this.wasSelectingRight) {
+        this.selectAssetFromList(this.rightHand);
+        this.wasSelectingRight = true;
+        this.justSelected = true;
+        // Clear justSelected flag after brief delay
+        setTimeout(() => { this.justSelected = false; }, 300);
+      }
+    }
+    
+    // Reset selection flags when pinch is released
+    if (!leftPinch) {
+      this.wasSelectingLeft = false;
+    }
+    if (!rightPinch) {
+      this.wasSelectingRight = false;
+    }
+    
+    // GESTURE 2: Drag to place object (ONLY if asset selected AND no object placed yet)
+    // Skip if just selected to prevent immediate placement
+    if ((leftPinch || rightPinch) && selectedAsset && !this.draggedObject && !this.isDragging && !this.justSelected) {
+      this.startDragging();
+    } else if (!(leftPinch || rightPinch) && this.isDragging) {
+      // Hide ghost preview when releasing
+      if (this.ghostPreview) {
+        this.ghostPreview.visible = false;
+      }
+      this.releaseDragging();
+    } else if (this.isDragging && !this.draggedObject) {
+      // Update drag position while dragging (before object is placed)
+      this.updateDragPosition(leftPinch ? this.leftHand : this.rightHand);
+    }
+    
+    // GESTURE 3: Two-hand pinch on opposite corners to scale
+    if (leftPinch && rightPinch && this.draggedObject) {
+      if (!this.isScaling) {
+        this.startScaling();
+      } else {
+        this.updateScaling();
+      }
+    } else if (this.isScaling) {
+      this.stopScaling();
+    }
+    
+    // GESTURE 4: One-hand pinch + rotate other hand to rotate object
+    if ((leftPinch || rightPinch) && this.draggedObject && !this.isScaling) {
+      if (!this.isRotating) {
+        this.startRotating(leftPinch, rightPinch);
+      } else {
+        this.updateRotation(leftPinch, rightPinch);
+      }
+    } else if (this.isRotating) {
+      this.stopRotating();
+    }
+    
+    // Update hand pointer positions on screen
+    this.updateHandPointers();
+  }
+  
+  selectAssetFromList(hand) {
+    // Map hand position to asset panel
+    const handY = hand.landmarks[8].y; // Index finger tip
+    const panelItems = document.querySelectorAll('.asset-item');
+    
+    const itemIndex = Math.floor(handY * panelItems.length);
+    
+    if (itemIndex >= 0 && itemIndex < panelItems.length) {
+      // IMPORTANT: If user already placed an object, clear it first
+      if (this.draggedObject) {
+        console.log('🔄 Clearing previous placement to select new asset');
+        // Remove old object from scene if it exists
+        if (this.draggedObject.parent) {
+          planGroup.remove(this.draggedObject);
+          const objIndex = placedAssets.indexOf(this.draggedObject);
+          if (objIndex > -1) {
+            placedAssets.splice(objIndex, 1);
+          }
+        }
+        this.draggedObject = null;
+      }
+      
+      this.selectedAssetIndex = itemIndex;
+      
+      // Highlight selected item
+      panelItems.forEach((item, i) => {
+        item.classList.toggle('selected', i === itemIndex);
+      });
+      
+      selectedAsset = panelItems[itemIndex].dataset.asset;
+      
+      // Reset drag state when selecting new asset
+      this.isDragging = false;
+      if (this.ghostPreview) {
+        this.ghostPreview.visible = false;
+      }
+      
+      this.statusEl.textContent = `✅ Selected: ${selectedAsset} - Pinch again to place`;
+      this.statusEl.className = 'selecting';
+      
+      console.log('✅ Asset selected via gesture:', selectedAsset);
+    }
+  }
+  
+  startDragging() {
+    // Prevent multiple drag starts
+    if (this.isDragging) {
+      console.log('⚠️ Already dragging - ignoring');
+      return;
+    }
+    
+    // Prevent dragging if object already placed
+    if (this.draggedObject) {
+      console.log('⚠️ Object already placed - must select asset again');
+      this.resetSelection();
+      return;
+    }
+    
+    // Must have an asset selected
+    if (!selectedAsset) {
+      console.log('⚠️ No asset selected');
+      return;
+    }
+    
+    this.isDragging = true;
+    this.hasPlacedThisDrag = false; // Reset placement flag for new drag
+    this.statusEl.textContent = 'Drag hand to position, release to place';
+    this.statusEl.className = 'placing';
+    console.log('🖐️ Started dragging:', selectedAsset);
+  }
+  
+  updateDragPosition(hand) {
+    // Update visual feedback of where object will be placed
+    if (!hand || !selectedAsset) return;
+    
+    const handPosition = hand.landmarks[8]; // Index finger tip
+    const worldPos = this.handToWorldPosition(handPosition);
+    
+    if (worldPos) {
+      // Create or update ghost preview mesh
+      if (!this.ghostPreview) {
+        const ghostGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const ghostMat = new THREE.MeshBasicMaterial({
+          color: 0x00ff00,
+          transparent: true,
+          opacity: 0.4,
+          wireframe: true
+        });
+        this.ghostPreview = new THREE.Mesh(ghostGeo, ghostMat);
+        this.ghostPreview.name = 'ghostPreview';
+        scene.add(this.ghostPreview);
+      }
+      
+      const config = assetConfig[selectedAsset];
+      this.ghostPreview.position.set(worldPos.x, config.yOffset + 0.25, worldPos.z);
+      this.ghostPreview.visible = true;
+      
+      this.statusEl.textContent = 'Release pinch to place object';
+      this.statusEl.className = 'placing';
+    } else {
+      // Hide ghost if not pointing at floor
+      if (this.ghostPreview) {
+        this.ghostPreview.visible = false;
+      }
+      this.statusEl.textContent = 'Point at floor to place';
+      this.statusEl.className = 'error';
+    }
+  }
+  
+  async releaseDragging() {
+    // CRITICAL: Only place object ONCE per drag - check flag first
+    if (this.hasPlacedThisDrag) {
+      console.log('⚠️ Already placed object in this drag - ignoring duplicate placement');
+      return;
+    }
+    
+    // Check if user is deleting the object
+    if (this.isDeletingObject && this.draggedObject) {
+      // Remove from scene
+      planGroup.remove(this.draggedObject);
+      
+      // Remove from placedAssets array
+      const index = placedAssets.indexOf(this.draggedObject);
+      if (index > -1) {
+        placedAssets.splice(index, 1);
+      }
+      
+      console.log('🗑️ Deleted object');
+      this.statusEl.textContent = 'Object deleted';
+      this.statusEl.className = '';
+      
+      this.draggedObject = null;
+      this.isDragging = false;
+      this.isDeletingObject = false;
+      this.hasPlacedThisDrag = false;
+      
+      // RESET SELECTION - must select again
+      this.resetSelection();
+      
+      // Save updated assets
+      savePlacedAssets();
+      return;
+    }
+    
+    if (!selectedAsset) {
+      this.isDragging = false;
+      this.hasPlacedThisDrag = false;
+      return;
+    }
+    
+    // Only allow ONE object to be placed per drag action
+    if (this.draggedObject) {
+      console.log('⚠️ Object already placed - release and select again to place another');
+      this.isDragging = false;
+      this.hasPlacedThisDrag = false;
+      
+      // RESET SELECTION IMMEDIATELY after placement
+      this.resetSelection();
+      return;
+    }
+    
+    // SET FLAG IMMEDIATELY to prevent duplicate placements
+    this.hasPlacedThisDrag = true;
+    
+    // Get hand position for raycasting
+    const handPosition = this.leftHand ? this.leftHand.landmarks[8] : (this.rightHand ? this.rightHand.landmarks[8] : null);
+    
+    if (handPosition) {
+      // Raycast from hand position to floor
+      const worldPos = this.handToWorldPosition(handPosition);
+      
+      if (!worldPos) {
+        console.warn('❌ Cannot place object - handToWorldPosition returned null (should not happen with fallback)');
+        this.statusEl.textContent = 'Error: Cannot determine placement position';
+        this.statusEl.className = 'error';
+        this.isDragging = false;
+        
+        // Reset selection if can't place
+        this.resetSelection();
+        return;
+      }
+      
+      // Verify asset config exists
+      const config = assetConfig[selectedAsset];
+      if (!config) {
+        console.error(`❌ Asset config not found for: ${selectedAsset}`);
+        console.log('Available configs:', Object.keys(assetConfig));
+        this.statusEl.textContent = `Error: Asset ${selectedAsset} not configured`;
+        this.statusEl.className = 'error';
+        this.isDragging = false;
+        this.resetSelection();
+        return;
+      }
+      
+      try {
+        console.log(`📦 Loading model for: ${selectedAsset}`);
+        const model = await loadAssetModel(selectedAsset);
+        
+        // Place on floor with proper Y offset
+        model.position.set(worldPos.x, config.yOffset, worldPos.z);
+        model.userData.isPlacedAsset = true;
+        model.userData.assetId = selectedAsset;
+        
+        planGroup.add(model);
+        placedAssets.push(model);
+        
+        this.draggedObject = model;
+        
+        console.log(`✅ Placed ${selectedAsset} on floor at (${worldPos.x.toFixed(2)}, ${config.yOffset}, ${worldPos.z.toFixed(2)})`);
+        
+        this.statusEl.textContent = `✅ ${selectedAsset} placed! Click asset again to place another`;
+        this.statusEl.className = 'success';
+        
+        // Save placed assets
+        savePlacedAssets();
+        
+        // CRITICAL: Reset selection IMMEDIATELY after successful placement
+        // User MUST click asset panel again to place another object
+        // Set isDragging to false to prevent further placements
+        this.isDragging = false;
+        
+        // Reset after brief delay to show success message
+        setTimeout(() => {
+          this.resetSelection();
+          this.statusEl.textContent = '✋ Click asset to select, then pinch to place';
+          this.statusEl.className = 'idle';
+        }, 800); // Reduced delay from 1500ms to 800ms
+        
+      } catch (error) {
+        console.error('❌ Failed to place asset:', error);
+        this.statusEl.textContent = 'Error placing object';
+        this.statusEl.className = 'error';
+        this.isDragging = false;
+        this.resetSelection();
+      }
+    } else {
+      this.isDragging = false;
+      this.resetSelection();
+    }
+  }
+  
+  // Reset selection state - user must select asset again
+  resetSelection() {
+    console.log('🔄 Resetting selection - user must click/pinch asset again');
+    
+    // Clear selection variables
+    selectedAsset = null;
+    this.selectedAssetIndex = -1;
+    this.draggedObject = null;
+    this.isDragging = false;
+    
+    // Clear moving state (NEW)
+    this.isMovingPlacedObject = false;
+    this.movingObject = null;
+    this.movingObjectOffset = null;
+    
+    // Clear selection state flags
+    this.justSelected = false;
+    this.wasSelectingLeft = false;
+    this.wasSelectingRight = false;
+    this.hasPlacedThisDrag = false; // Reset placement flag
+    
+    // Hide ghost preview
+    if (this.ghostPreview) {
+      this.ghostPreview.visible = false;
+    }
+    
+    // Remove visual selection from all asset items
+    const assetItems = document.querySelectorAll('.asset-item');
+    assetItems.forEach(item => item.classList.remove('selected'));
+  }
+  
+  // ===================================================================
+  // NEW: Functions for moving already-placed objects
+  // ===================================================================
+  
+  getPlacedObjectAtHandPosition(hand) {
+    if (!hand || placedAssets.length === 0) return null;
+    
+    const handPosition = hand.landmarks[8]; // Index finger tip
+    
+    // Convert hand position to NDC
+    const ndcX = (handPosition.x * 2) - 1;
+    const ndcY = -((handPosition.y * 2) - 1);
+    
+    // Raycast to find placed objects
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(ndcX, ndcY);
+    raycaster.setFromCamera(mouse, camera);
+    
+    // Check for intersections with placed assets
+    const intersects = raycaster.intersectObjects(placedAssets, true);
+    
+    if (intersects.length > 0) {
+      // Find the actual placed asset (traverse up to find parent with userData)
+      let targetObject = intersects[0].object;
+      
+      // Traverse up until we find the placed asset
+      while (targetObject && !targetObject.userData.isPlacedAsset) {
+        targetObject = targetObject.parent;
+      }
+      
+      if (targetObject && targetObject.userData.isPlacedAsset) {
+        console.log('🎯 Found placed object:', targetObject.userData.assetId);
+        return targetObject;
+      }
+    }
+    
+    return null;
+  }
+  
+  startMovingPlacedObject(object) {
+    if (!object) return;
+    
+    this.isMovingPlacedObject = true;
+    this.movingObject = object;
+    
+    // Calculate offset from hand position to object center
+    const hand = this.leftHand || this.rightHand;
+    if (hand) {
+      const handWorldPos = this.handToWorldPosition(hand.landmarks[8]);
+      if (handWorldPos) {
+        this.movingObjectOffset = {
+          x: object.position.x - handWorldPos.x,
+          y: object.position.y - handWorldPos.y,
+          z: object.position.z - handWorldPos.z
+        };
+      }
+    }
+    
+    // Visual feedback
+    this.statusEl.textContent = `🔄 Moving ${object.userData.assetId} - Release to place`;
+    this.statusEl.className = 'moving';
+    
+    console.log(`🔄 Started moving: ${object.userData.assetId}`);
+  }
+  
+  updatePlacedObjectPosition(hand) {
+    if (!this.movingObject || !hand) return;
+    
+    const handPosition = hand.landmarks[8];
+    const worldPos = this.handToWorldPosition(handPosition);
+    
+    if (worldPos) {
+      // Apply offset so object stays where grabbed (not jumping to hand center)
+      if (this.movingObjectOffset) {
+        this.movingObject.position.x = worldPos.x + this.movingObjectOffset.x;
+        this.movingObject.position.z = worldPos.z + this.movingObjectOffset.z;
+        // Keep Y position (height) unchanged
+      } else {
+        // Fallback if no offset calculated
+        this.movingObject.position.x = worldPos.x;
+        this.movingObject.position.z = worldPos.z;
+      }
+      
+      // Log position updates occasionally
+      if (Math.random() < 0.1) { // 10% of frames
+        console.log(`📍 Moving object to: (${this.movingObject.position.x.toFixed(2)}, ${this.movingObject.position.z.toFixed(2)})`);
+      }
+    }
+  }
+  
+  stopMovingPlacedObject() {
+    if (!this.movingObject) return;
+    
+    console.log(`✅ Finished moving: ${this.movingObject.userData.assetId}`);
+    console.log(`   Final position: (${this.movingObject.position.x.toFixed(2)}, ${this.movingObject.position.y.toFixed(2)}, ${this.movingObject.position.z.toFixed(2)})`);
+    
+    this.statusEl.textContent = `✅ ${this.movingObject.userData.assetId} repositioned!`;
+    this.statusEl.className = 'success';
+    
+    // Save updated positions
+    savePlacedAssets();
+    
+    // Reset state
+    this.isMovingPlacedObject = false;
+    this.movingObject = null;
+    this.movingObjectOffset = null;
+    
+    // Return to idle after brief delay
+    setTimeout(() => {
+      this.statusEl.textContent = '✋ Ready - Pinch to select or move objects';
+      this.statusEl.className = 'idle';
+    }, 800);
+  }
+  
+  // ===================================================================
+  // End of move placed object functions
+  // ===================================================================
+  
+  handToWorldPosition(handLandmark) {
+    // Convert hand position (normalized 0-1) to NDC (-1 to +1)
+    // MediaPipe coordinates: x is 0-1 left to right, y is 0-1 top to bottom
+    const ndcX = (handLandmark.x * 2) - 1;
+    const ndcY = -((handLandmark.y * 2) - 1); // Flip Y for Three.js
+    
+    // Create raycaster from camera through hand position
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(ndcX, ndcY);
+    raycaster.setFromCamera(mouse, camera);
+    
+    // Try to raycast to floor plane (y=0)
+    const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersectPoint = new THREE.Vector3();
+    
+    const didIntersect = raycaster.ray.intersectPlane(floorPlane, intersectPoint);
+    
+    if (didIntersect) {
+      const distanceFromCamera = camera.position.distanceTo(intersectPoint);
+      
+      console.log(`📍 Floor raycast: (${intersectPoint.x.toFixed(2)}, ${intersectPoint.y.toFixed(2)}, ${intersectPoint.z.toFixed(2)}) dist: ${distanceFromCamera.toFixed(2)}m`);
+      
+      // Allow placement within 15 meters (increased from 8m)
+      if (distanceFromCamera <= 15.0) {
+        return intersectPoint;
+      } else {
+        console.warn(`⚠️ Too far from camera: ${distanceFromCamera.toFixed(2)}m > 15m`);
+      }
+    } else {
+      console.warn('⚠️ Raycast did not intersect floor plane');
+    }
+    
+    // Fallback: use a default position in front of camera if raycast fails
+    // This ensures the user can always place objects
+    const cameraForward = new THREE.Vector3();
+    camera.getWorldDirection(cameraForward);
+    
+    const fallbackPos = camera.position.clone();
+    fallbackPos.add(cameraForward.multiplyScalar(3)); // 3 meters in front
+    fallbackPos.y = 0; // On floor
+    
+    console.log(`🎯 Using fallback position: (${fallbackPos.x.toFixed(2)}, ${fallbackPos.y.toFixed(2)}, ${fallbackPos.z.toFixed(2)})`);
+    return fallbackPos;
+  }
+  
+  startScaling() {
+    this.isScaling = true;
+    this.scalingObject = this.draggedObject;
+    
+    if (this.leftHand && this.rightHand) {
+      const leftPos = this.leftHand.landmarks[8];
+      const rightPos = this.rightHand.landmarks[8];
+      
+      const dx = leftPos.x - rightPos.x;
+      const dy = leftPos.y - rightPos.y;
+      
+      this.initialHandDistance = Math.sqrt(dx*dx + dy*dy);
+      this.initialScale = this.scalingObject.scale.x;
+    }
+    
+    this.statusEl.textContent = 'Scaling object';
+    this.statusEl.className = 'scaling';
+    console.log('📏 Started scaling');
+  }
+  
+  updateScaling() {
+    if (!this.scalingObject || !this.leftHand || !this.rightHand) return;
+    
+    const leftPos = this.leftHand.landmarks[8];
+    const rightPos = this.rightHand.landmarks[8];
+    
+    const dx = leftPos.x - rightPos.x;
+    const dy = leftPos.y - rightPos.y;
+    
+    const currentDistance = Math.sqrt(dx*dx + dy*dy);
+    const scaleFactor = currentDistance / this.initialHandDistance;
+    
+    const newScale = this.initialScale * scaleFactor;
+    this.scalingObject.scale.setScalar(Math.max(0.1, Math.min(5, newScale)));
+    
+    this.statusEl.textContent = `Scale: ${newScale.toFixed(2)}x`;
+  }
+  
+  stopScaling() {
+    this.isScaling = false;
+    this.scalingObject = null;
+    console.log('✅ Stopped scaling');
+  }
+  
+  startRotating(leftPinch, rightPinch) {
+    this.isRotating = true;
+    this.rotatingObject = this.draggedObject;
+    
+    const rotatingHand = leftPinch ? this.rightHand : this.leftHand;
+    if (rotatingHand) {
+      const wrist = rotatingHand.landmarks[0];
+      const middle = rotatingHand.landmarks[9];
+      
+      this.initialRotationAngle = Math.atan2(middle.y - wrist.y, middle.x - wrist.x);
+      this.initialObjectRotation = this.rotatingObject.rotation.y;
+    }
+    
+    this.statusEl.textContent = 'Rotating object';
+    this.statusEl.className = 'rotating';
+    console.log('🔄 Started rotating');
+  }
+  
+  updateRotation(leftPinch, rightPinch) {
+    if (!this.rotatingObject) return;
+    
+    const rotatingHand = leftPinch ? this.rightHand : this.leftHand;
+    if (!rotatingHand) return;
+    
+    const wrist = rotatingHand.landmarks[0];
+    const middle = rotatingHand.landmarks[9];
+    
+    const currentAngle = Math.atan2(middle.y - wrist.y, middle.x - wrist.x);
+    const angleDiff = currentAngle - this.initialRotationAngle;
+    
+    this.rotatingObject.rotation.y = this.initialObjectRotation + angleDiff * 2;
+    
+    const degrees = ((angleDiff * 180 / Math.PI) % 360).toFixed(0);
+    this.statusEl.textContent = `Rotation: ${degrees}°`;
+  }
+  
+  stopRotating() {
+    this.isRotating = false;
+    this.rotatingObject = null;
+    console.log('✅ Stopped rotating');
+  }
+  
+  updateHandPointers() {
+    const leftPointer = document.getElementById('leftHandPointer');
+    const rightPointer = document.getElementById('rightHandPointer');
+    
+    if (!leftPointer || !rightPointer) return;
+    
+    // Update left hand pointer
+    if (this.leftHand) {
+      const indexTip = this.leftHand.landmarks[8];
+      const x = indexTip.x * window.innerWidth;
+      const y = indexTip.y * window.innerHeight;
+      
+      leftPointer.style.left = `${x}px`;
+      leftPointer.style.top = `${y}px`;
+      leftPointer.style.display = 'block';
+      
+      // Show pinch state
+      if (this.smoothPinch(this.leftHand, this.leftPinchHistory)) {
+        leftPointer.style.transform = 'translate(-50%, -50%) scale(1.5)';
+        leftPointer.style.backgroundColor = 'rgba(0, 255, 0, 0.9)';
+      } else {
+        leftPointer.style.transform = 'translate(-50%, -50%) scale(1)';
+        leftPointer.style.backgroundColor = 'rgba(0, 255, 0, 0.6)';
+      }
+    } else {
+      leftPointer.style.display = 'none';
+    }
+    
+    // Update right hand pointer
+    if (this.rightHand) {
+      const indexTip = this.rightHand.landmarks[8];
+      const x = indexTip.x * window.innerWidth;
+      const y = indexTip.y * window.innerHeight;
+      
+      rightPointer.style.left = `${x}px`;
+      rightPointer.style.top = `${y}px`;
+      rightPointer.style.display = 'block';
+      
+      // Show pinch state
+      if (this.smoothPinch(this.rightHand, this.rightPinchHistory)) {
+        rightPointer.style.transform = 'translate(-50%, -50%) scale(1.5)';
+        rightPointer.style.backgroundColor = 'rgba(255, 0, 255, 0.9)';
+      } else {
+        rightPointer.style.transform = 'translate(-50%, -50%) scale(1)';
+        rightPointer.style.backgroundColor = 'rgba(255, 0, 255, 0.6)';
+      }
+    } else {
+      rightPointer.style.display = 'none';
+    }
+    
+    // Check if hand is over dustbin for deletion
+    this.checkDustbinHover();
+  }
+  
+  checkDustbinHover() {
+    const dustbin = document.getElementById('gestureDeleteZone');
+    if (!dustbin || !this.draggedObject) return;
+    
+    const rect = dustbin.getBoundingClientRect();
+    
+    // Check if either hand is over dustbin
+    let isOverDustbin = false;
+    
+    if (this.leftHand) {
+      const indexTip = this.leftHand.landmarks[8];
+      const x = indexTip.x * window.innerWidth;
+      const y = indexTip.y * window.innerHeight;
+      
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        isOverDustbin = true;
+      }
+    }
+    
+    if (this.rightHand) {
+      const indexTip = this.rightHand.landmarks[8];
+      const x = indexTip.x * window.innerWidth;
+      const y = indexTip.y * window.innerHeight;
+      
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        isOverDustbin = true;
+      }
+    }
+    
+    // Highlight dustbin if object is being dragged over it
+    if (isOverDustbin && this.isDragging) {
+      dustbin.style.backgroundColor = '#ff0000';
+      dustbin.style.transform = 'scale(1.2)';
+      this.statusEl.textContent = 'Release to delete object';
+      this.statusEl.className = 'deleting';
+      this.isDeletingObject = true;
+    } else {
+      dustbin.style.backgroundColor = '#d32f2f';
+      dustbin.style.transform = 'scale(1)';
+      this.isDeletingObject = false;
+    }
+  }
+  
+  // Method called from panel click handler - starts drag immediately
+  startDraggingFromPanel(index, assetId) {
+    console.log(`🖐️ Selected from panel: ${assetId}`);
+    
+    // IMPORTANT: Clear any previous drag state first
+    // This ensures we start fresh each time
+    if (this.draggedObject) {
+      console.log('🔄 Removing old dragged object');
+      // Remove old object from scene if it exists
+      if (this.draggedObject.parent) {
+        planGroup.remove(this.draggedObject);
+        const objIndex = placedAssets.indexOf(this.draggedObject);
+        if (objIndex > -1) {
+          placedAssets.splice(objIndex, 1);
+        }
+      }
+    }
+    
+    this.draggedObject = null;
+    this.isDragging = false; // DON'T set to true yet - wait for pinch
+    
+    // Set NEW selection
+    this.selectedAssetIndex = index;
+    selectedAsset = assetId;
+    
+    // Create ghost preview if it doesn't exist
+    if (!this.ghostPreview) {
+      const ghostGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      const ghostMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff00,
+        transparent: true,
+        opacity: 0.4,
+        wireframe: true
+      });
+      this.ghostPreview = new THREE.Mesh(ghostGeo, ghostMat);
+      this.ghostPreview.name = 'ghostPreview';
+      scene.add(this.ghostPreview);
+    }
+    this.ghostPreview.visible = false;  // Hidden until pinch
+    
+    // Update status
+    this.statusEl.textContent = `✅ ${assetId} selected - Now pinch to place`;
+    this.statusEl.className = 'selecting';
+  }
+}
+
+// Initialize gesture system
+gestureSystem = new GestureDetectionSystem();
 
 // =============================================================================
 // WebXR / VR Headset Support
@@ -6539,11 +8421,23 @@ renderer.xr.addEventListener('sessionstart', () => {
     console.log('✅ Scene background restored for VR');
   }
   
+  //  Add a bright test sphere so you can see SOMETHING in VR
+  const testSphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: false })
+  );
+  testSphere.position.set(sx, EYE_HEIGHT, sz - 2); // 2 meters in front of you
+  testSphere.name = 'vr-test-sphere';
+  scene.add(testSphere);
+  console.log('🔴 Added red test sphere 2m in front at:', testSphere.position);
+  
   // CRITICAL: Ensure lights are on
   console.log('💡 Lighting check:', {
     ambient: (ambientLight.intensity * 100).toFixed(0) + '%',
     sun: (sun.intensity * 100).toFixed(0) + '%',
-    background: scene.background ? 'set' : 'none'
+    background: scene.background ? 'set' : 'none',
+    sceneChildren: scene.children.length,
+    planGroupChildren: planGroup ? planGroup.children.length : 0
   });
   
   // CRITICAL: Ensure planGroup is visible
@@ -6614,6 +8508,13 @@ renderer.xr.addEventListener('sessionstart', () => {
 renderer.xr.addEventListener('sessionend', () => {
   isVRActive = false;
   _vrSessionPending = false;
+
+  // Remove test sphere
+  const testSphere = scene.getObjectByName('vr-test-sphere');
+  if (testSphere) {
+    scene.remove(testSphere);
+    console.log('🔴 Removed test sphere');
+  }
 
   // Stop GPS tracking
   if (vrLocomotion.gps.watch !== null) {
@@ -7433,38 +9334,10 @@ applyPersistedSettings(loadSettings());
       });
   }
   
-  // If no native VR support, install polyfill immediately
+  // WebXR polyfill will be initialized when VR mode is requested
+  // (see setupWebXRPolyfill function)
   setTimeout(() => {
-    if (!hasNativeVR && window.WebXRPolyfill) {
-      try {
-        // CRITICAL: Configure polyfill to NOT create its own canvas
-        // It should use the existing Three.js canvas
-        new window.WebXRPolyfill({ 
-          cardboard: true,
-          allowCardboardOnDesktop: true,
-          // Don't let polyfill create its own canvas context
-          overrideEnvironmentIntegration: {
-            requestReferenceSpace: false
-          }
-        });
-        console.log('✅ WebXR Polyfill initialized for Cardboard VR');
-        
-        // Verify it's working
-        if (navigator.xr) {
-          navigator.xr.isSessionSupported('immersive-vr').then(supported => {
-            if (supported) {
-              console.log('✅ VR sessions are supported via polyfill');
-            } else {
-              console.log('ℹ️ VR sessions available but may have limited functionality');
-            }
-          }).catch(e => {
-            console.warn('VR session check failed:', e);
-          });
-        }
-      } catch (e) {
-        console.warn('WebXR Polyfill initialization failed:', e);
-      }
-    }
+    console.log('✅ Page loaded, VR mode ready');
   }, 100);
 })();
 </script>
@@ -7507,7 +9380,7 @@ applyPersistedSettings(loadSettings());
         local_ip: hostname,
         port: port,
         protocol: protocol.replace(':', ''),
-        vr_url: `${protocol}//${host}/?vr=auto`
+        vr_url: `${protocol}//${host}/vr-viewer.html?vr=auto`
       };
     }
   }
@@ -7515,35 +9388,49 @@ applyPersistedSettings(loadSettings());
   // Generate QR Code
   function generateQRCode(url) {
     try {
+      console.log('🔍 Attempting to generate QR code...');
+      console.log('  URL:', url);
+      console.log('  QRCode library available:', typeof QRCode !== 'undefined');
+      console.log('  Container:', qrCodeContainer ? 'Found' : 'NOT FOUND');
+      
       // Clear previous QR code
       qrCodeContainer.innerHTML = '';
       
-      if (typeof QRCode !== 'undefined') {
-        console.log('Generating QR code for:', url);
-        qrCodeInstance = new QRCode(qrCodeContainer, {
-          text: url,
-          width: 256,
-          height: 256,
-          colorDark: "#000000",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        console.log('QR code generated successfully');
-      } else {
-        console.error('QRCode library not loaded');
-        qrCodeContainer.innerHTML = `
-          <div style="padding: 40px; color: #dc2626; text-align: center;">
-            <p style="margin: 0 0 8px;">QR Code library failed to load</p>
-            <p style="font-size: 12px; opacity: 0.8; margin: 0;">Please check your internet connection and refresh the page</p>
-          </div>
-        `;
+      if (typeof QRCode === 'undefined') {
+        throw new Error('QRCode library not loaded. Please check your internet connection and reload the page.');
       }
+      
+      if (!url || url.trim() === '') {
+        throw new Error('Invalid URL provided for QR code generation');
+      }
+      
+      if (!qrCodeContainer) {
+        throw new Error('QR code container element not found');
+      }
+      
+      console.log('✅ All checks passed, creating QR code...');
+      qrCodeInstance = new QRCode(qrCodeContainer, {
+        text: url,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      console.log('✅ QR code generated successfully!');
+      
     } catch (error) {
-      console.error('QR code generation error:', error);
+      console.error('❌ QR code generation error:', error);
       qrCodeContainer.innerHTML = `
         <div style="padding: 40px; color: #dc2626; text-align: center;">
-          <p style="margin: 0 0 8px;">Failed to generate QR code</p>
-          <p style="font-size: 12px; opacity: 0.8; margin: 0;">${error.message || 'Unknown error'}</p>
+          <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 12px;">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          <p style="margin: 0 0 8px; font-weight: 600;">Failed to Generate QR Code</p>
+          <p style="font-size: 12px; opacity: 0.8; margin: 0 0 16px; line-height: 1.5;">${error.message || 'Unknown error occurred'}</p>
+          <button onclick="location.reload()" style="padding: 8px 16px; background: var(--ink); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Reload Page</button>
         </div>
       `;
     }
@@ -7552,6 +9439,24 @@ applyPersistedSettings(loadSettings());
   // Open VR QR Modal
   async function openVRModal() {
     try {
+      // CRITICAL: Check if floor plan is loaded before generating QR
+      if (!window.lastDetectionResult) {
+        qrCodeContainer.innerHTML = `
+          <div style="padding: 40px; text-align: center; color: #dc2626;">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 16px;">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p style="margin: 0 0 16px; font-weight: 600;">No Floor Plan Loaded</p>
+            <p style="font-size: 12px; opacity: 0.8; margin: 0 0 20px; line-height: 1.5;">Please load a floor plan first by clicking one of the sample plans above or uploading your own image.</p>
+            <button onclick="document.getElementById('vr-qr-modal').classList.remove('active')" style="padding: 8px 20px; background: var(--ink); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Close</button>
+          </div>
+        `;
+        vrQRModal.classList.add('active');
+        return;
+      }
+      
       if (!serverInfo) {
         // Show loading state
         qrCodeContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--muted);">Loading server info...</div>';
@@ -7561,8 +9466,50 @@ applyPersistedSettings(loadSettings());
       }
       
       if (serverInfo && serverInfo.ok) {
-        const vrUrl = serverInfo.vr_url;
-        console.log('Generated VR URL for QR code:', vrUrl);
+        // CRITICAL: Save floor plan data to server and get session ID
+        console.log('📱 Creating VR session with floor plan data...');
+        let sessionId = null;
+        
+        try {
+          // Send the ORIGINAL detection result (not structured document)
+          // This ensures VR viewer shows EXACT same geometry as desktop
+          const floorplanData = window.lastDetectionResult;
+          
+          console.log('✅ Using original detection result for VR session');
+          console.log('📊 Data contains:', {
+            walls: floorplanData.polygons?.wall?.length || 0,
+            doors: floorplanData.polygons?.door?.length || 0,
+            windows: floorplanData.polygons?.window?.length || 0
+          });
+          
+          // Create VR session on server
+          const sessionResponse = await fetch('/api/vr-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ floorplan_data: floorplanData })
+          });
+          
+          if (sessionResponse.ok) {
+            const sessionResult = await sessionResponse.json();
+            sessionId = sessionResult.session_id;
+            console.log('✅ VR session created:', sessionId);
+          } else {
+            throw new Error('Failed to create VR session on server');
+          }
+        } catch (err) {
+          console.error('❌ Error creating VR session:', err);
+        }
+        
+        // Generate VR URL with session ID
+        let vrUrl;
+        if (sessionId) {
+          vrUrl = `${serverInfo.vr_url}&session=${sessionId}`;
+          console.log('🔗 VR URL with session:', vrUrl);
+        } else {
+          vrUrl = serverInfo.vr_url;
+          console.warn('⚠️ VR URL without session (floor plan may not load on phone)');
+        }
+        
         vrUrlInput.value = vrUrl;
         
         // Clear loading state
@@ -7607,7 +9554,22 @@ applyPersistedSettings(loadSettings());
   
   // Event Listeners
   if (vrModeBtn) {
-    vrModeBtn.addEventListener('click', openVRModal);
+    vrModeBtn.addEventListener('click', async () => {
+      // Use new VR Integration system
+      try {
+        // Initialize VR Integration if not already done
+        if (!window.vrIntegration) {
+          console.log('🎮 Initializing VR Integration...');
+          window.vrIntegration = new VRIntegration(scene, camera, renderer);
+        }
+        
+        // Start VR mode with QR code
+        await window.vrIntegration.startVRMode();
+      } catch (error) {
+        console.error('❌ Failed to start VR mode:', error);
+        alert('Failed to start VR mode. Make sure the VR server is running on port 3001.');
+      }
+    });
   }
   
   if (vrQRClose) {
@@ -7629,6 +9591,14 @@ applyPersistedSettings(loadSettings());
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('vr') === 'auto') {
     console.log('VR auto-entry detected, showing VR prompt...');
+    
+    // Get session ID from URL
+    const sessionId = urlParams.get('session');
+    if (sessionId) {
+      console.log('📱 VR session ID detected:', sessionId);
+    } else {
+      console.warn('⚠️ No session ID in URL - floor plan may not load');
+    }
     
     // On mobile, VR session MUST be triggered by user interaction
     // Show a fullscreen button to enter VR
@@ -7657,8 +9627,8 @@ applyPersistedSettings(loadSettings());
         <circle cx="16" cy="13" r="2"/>
       </svg>
       <h1 style="font-size: 28px; margin: 0 0 12px; font-weight: 700;">VR Mode Ready!</h1>
-      <p style="font-size: 16px; margin: 0 0 30px; opacity: 0.9; max-width: 400px; line-height: 1.5;">
-        Tap the button below to enter VR mode, then place your phone in a VR box to explore the 3D floorplan.
+      <p id="vr-status-text" style="font-size: 16px; margin: 0 0 30px; opacity: 0.9; max-width: 400px; line-height: 1.5;">
+        Loading floor plan...
       </p>
       <button id="vr-auto-start-btn" style="
         background: white;
@@ -7671,13 +9641,15 @@ applyPersistedSettings(loadSettings());
         cursor: pointer;
         box-shadow: 0 8px 24px rgba(0,0,0,0.2);
         transition: transform 0.2s, box-shadow 0.2s;
-      ">
+        opacity: 0.5;
+        pointer-events: none;
+      " disabled>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
           <rect x="1" y="8" width="22" height="11" rx="2"/>
           <circle cx="8" cy="13" r="2"/>
           <circle cx="16" cy="13" r="2"/>
         </svg>
-        Enter VR Mode
+        Loading...
       </button>
       <p style="font-size: 13px; margin: 30px 0 0; opacity: 0.8; max-width: 360px;">
         💡 Tip: You may need to allow motion sensor permissions when prompted
@@ -7687,6 +9659,38 @@ applyPersistedSettings(loadSettings());
     document.body.appendChild(vrPrompt);
     
     const startBtn = document.getElementById('vr-auto-start-btn');
+    const statusText = document.getElementById('vr-status-text');
+    
+    // Function to enable the VR button
+    function enableVRButton() {
+      startBtn.disabled = false;
+      startBtn.style.opacity = '1';
+      startBtn.style.pointerEvents = 'auto';
+      startBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 8px;">
+          <rect x="1" y="8" width="22" height="11" rx="2"/>
+          <circle cx="8" cy="13" r="2"/>
+          <circle cx="16" cy="13" r="2"/>
+        </svg>
+        Enter VR Mode
+      `;
+      statusText.textContent = 'Tap the button below to enter VR mode, then place your phone in a VR box to explore the 3D floorplan.';
+    }
+    
+    // Function to show error
+    function showError(message) {
+      startBtn.disabled = false;
+      startBtn.style.opacity = '1';
+      startBtn.style.pointerEvents = 'auto';
+      startBtn.style.background = '#f87171';
+      startBtn.style.color = 'white';
+      startBtn.innerHTML = '❌ Error - Tap to Retry';
+      statusText.textContent = message;
+      statusText.style.color = '#fecaca';
+      
+      // Retry on click
+      startBtn.onclick = () => location.reload();
+    }
     
     // Hover effect
     startBtn.addEventListener('mouseover', () => {
@@ -7704,6 +9708,96 @@ applyPersistedSettings(loadSettings());
       startBtn.style.transform = 'scale(1)';
     });
     
+    // CRITICAL: Load floor plan from server using session ID
+    if (sessionId) {
+      console.log('📱 Loading floor plan from VR session:', sessionId);
+      statusText.textContent = 'Downloading floor plan from server...';
+      
+      // Load floor plan immediately in background
+      fetch(`/api/vr-session/${sessionId}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(async result => {
+          if (result.ok && result.floorplan_data) {
+            console.log('✅ Floor plan data received from server');
+            statusText.textContent = 'Processing floor plan data...';
+            const floorplanData = result.floorplan_data;
+            
+            // Wait a moment for page to fully initialize
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            try {
+              // Check if we have the structured document format
+              const fp = floorplanData.floorPlan || floorplanData;
+              
+              if (!fp.rooms || fp.rooms.length === 0) {
+                console.warn('⚠️ No rooms found in floor plan data');
+                showError('No rooms found in floor plan. Please try generating a new QR code.');
+                return;
+              }
+              
+              console.log(`📱 Floor plan has ${fp.rooms.length} rooms, ${fp.doors?.length || 0} doors, ${fp.walls?.length || 0} walls`);
+              statusText.textContent = `Building 3D model (${fp.rooms.length} rooms)...`;
+              
+              // Convert the structured data format to the format expected by loadPlan
+              const planData = {
+                polygons: {
+                  wall: fp.walls || [],
+                  door: fp.doors || [],
+                  window: fp.windows || []
+                },
+                input_image_b64: floorplanData.input_image_b64 || null,
+                content_rect: fp.content_rect || null,
+                image_width: fp.image_width,
+                image_height: fp.image_height
+              };
+              
+              // Store as last detection result for other features
+              window.lastDetectionResult = {
+                rooms: fp.rooms,
+                doors: fp.doors || [],
+                walls: fp.walls || [],
+                windows: fp.windows || [],
+                image_width: fp.image_width,
+                image_height: fp.image_height
+              };
+              
+              // Load the floor plan
+              console.log('📱 Calling loadPlan with data...');
+              await window.loadPlan(planData);
+              
+              console.log('✅ Floor plan loaded successfully for VR mode');
+              statusText.textContent = '✅ Floor plan ready!';
+              
+              // Wait a bit to show success message
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Enable the button
+              enableVRButton();
+              
+            } catch (err) {
+              console.error('❌ Failed to load floor plan for VR:', err);
+              showError(`Failed to build 3D model: ${err.message || 'Unknown error'}`);
+            }
+          } else {
+            console.error('❌ VR session not found or expired');
+            showError('VR session expired or not found. Please generate a new QR code on the desktop.');
+          }
+        })
+        .catch(err => {
+          console.error('❌ Failed to fetch VR session:', err);
+          showError(`Failed to connect to server: ${err.message || 'Network error'}. Make sure phone and desktop are on the same WiFi.`);
+        });
+    } else {
+      console.warn('⚠️ No session ID - floor plan will not load');
+      console.log('💡 Please generate a new QR code on the desktop');
+      showError('No session ID in URL. Please generate a new QR code on the desktop.');
+    }
+    
     // Enter VR when button is clicked
     startBtn.addEventListener('click', async () => {
       vrPrompt.innerHTML = `
@@ -7716,8 +9810,8 @@ applyPersistedSettings(loadSettings());
       `;
       
       try {
-        // Small delay to ensure UI updates
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Give more time for floor plan to load completely
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Enter VR mode
         await enterVRMode();
@@ -7853,21 +9947,42 @@ async function enterVRMode() {
   }
 }
 
-// Setup WebXR Polyfill for mobile VR boxes
+// Setup WebXR Polyfill for mobile VR boxes - COMPLETE REWRITE FROM WORKING FILE
 async function setupWebXRPolyfill() {
   try {
-    // Check if navigator.xr exists (either native or from polyfill)
-    if (!navigator.xr) {
-      // If polyfill is available but not initialized, initialize it now
-      if (window.WebXRPolyfill) {
-        new window.WebXRPolyfill({ 
-          cardboard: true,
-          allowCardboardOnDesktop: true 
-        });
-        console.log('✅ WebXR Polyfill installed for Cardboard VR');
-      } else {
-        throw new Error('WebXR Polyfill library not loaded. Please check your internet connection and try again.');
+    let native = false;
+    if (navigator.xr) {
+      try {
+        native = await navigator.xr.isSessionSupported('immersive-vr');
+      } catch(e) {}
+    }
+    if (native) {
+      console.log('✅ Native WebXR VR support detected');
+      return; // Use native support
+    }
+    
+    console.log('🔧 Installing WebXR Polyfill for Cardboard VR...');
+    
+    // CRITICAL: Remove browser's broken/incomplete XR implementation
+    // This is what the working file does that yours doesn't!
+    if ('xr' in navigator) {
+      try { delete Navigator.prototype.xr; } catch(e) {}
+      try { delete navigator.xr; } catch(e) {}
+    }
+    
+    // Remove all XR classes so polyfill can install complete set
+    for (const name of Object.getOwnPropertyNames(window)) {
+      if (/^XR[A-Z]/.test(name)) {
+        try { delete window[name]; } catch(e) {}
       }
+    }
+    
+    // Now install the polyfill
+    if (window.WebXRPolyfill) {
+      new window.WebXRPolyfill({ cardboard: true });
+      console.log('✅ WebXR Polyfill installed for Cardboard VR');
+    } else {
+      throw new Error('WebXR Polyfill library not loaded');
     }
     
     // Small delay to let polyfill initialize
@@ -7875,12 +9990,12 @@ async function setupWebXRPolyfill() {
     
     // Verify XR is now available
     if (!navigator.xr) {
-      throw new Error('WebXR initialization failed');
+      throw new Error('WebXR initialization failed after polyfill install');
     }
     
-    console.log('WebXR ready for VR session');
+    console.log('✅ WebXR ready for VR session');
   } catch(err) {
-    console.error('XR setup error:', err);
+    console.error('❌ XR setup error:', err);
     throw new Error('Failed to setup VR support: ' + err.message);
   }
 }
@@ -7924,6 +10039,14 @@ window.addEventListener('touchcancel', () => {
 }, { passive: true });
 
 console.log('✅ VR touch controls registered');
+
+// Check if QRCode library loaded successfully
+if (typeof QRCode === 'undefined') {
+  console.error('❌ QRCode library failed to load - VR QR code generation will not work');
+  console.log('💡 Check your internet connection or try reloading the page');
+} else {
+  console.log('✅ QRCode library loaded successfully');
+}
 
 </script>
 

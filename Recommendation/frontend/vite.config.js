@@ -8,14 +8,14 @@ export default defineConfig({
   // (e.g. http://10.x.x.x:5173) instead of only listening on localhost.
   server: {
     host: true,
-    port: 5173,
-    strictPort: true,
+    port: 5176,
+    strictPort: false,
     allowedHosts: true,
   },
   preview: {
     host: true,
-    port: 5173,
-    strictPort: true,
+    port: 5176,
+    strictPort: false,
     allowedHosts: true,
   },
 })

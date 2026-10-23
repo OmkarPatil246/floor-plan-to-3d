@@ -150,32 +150,29 @@ def _classify_room_type(area: float, doors: int, windows: int, bounds: Dict[str,
     Returns:
         Room type string
     """
-    # Convert area from pixels to approximate square meters (rough estimate)
-    # Assuming 1 pixel ≈ 0.1 meters, so 1 sq pixel ≈ 0.01 sq meters
-    # This is a rough heuristic - adjust based on your floor plan scale
-    approx_area_m2 = area * 0.01
+    # Classification based on relative area and features
+    # Sort rooms by area to understand relative sizes
     
-    # Room type classification logic
-    # Based on typical room sizes and characteristics
-    
-    # Very small rooms (< 4 m²) - likely bathroom or closet
-    if approx_area_m2 < 4:
-        if windows == 0 or windows == 1:
-            return "Bathroom"
-        return "Storage"
-    
-    # Small rooms (4-8 m²) - bathroom, small bedroom, or utility
-    elif approx_area_m2 < 8:
+    # Very small rooms (area < 1000 sq units) - likely bathroom or utility
+    if area < 1000:
         if windows == 0:
             return "Bathroom"
-        elif windows >= 1:
-            return "Bedroom"
         return "Utility"
     
-    # Medium-small rooms (8-12 m²) - bedroom, kitchen, or bathroom
-    elif approx_area_m2 < 12:
+    # Small rooms (1000-2000 sq units) - bathroom, small bedroom, or storage
+    elif area < 2000:
         if windows == 0:
             return "Bathroom"
+        elif windows == 1 and doors == 1:
+            return "Bedroom"
+        return "Storage"
+    
+    # Medium rooms (2000-4000 sq units) - bedroom, kitchen, or dining
+    elif area < 4000:
+        if windows == 0:
+            return "Hallway"
+        elif windows == 1 and doors == 1:
+            return "Bedroom"
         elif doors >= 2:
             return "Kitchen"
         elif windows >= 2:
@@ -183,24 +180,24 @@ def _classify_room_type(area: float, doors: int, windows: int, bounds: Dict[str,
         else:
             return "Bedroom"
     
-    # Medium rooms (12-18 m²) - bedroom, kitchen, or dining
-    elif approx_area_m2 < 18:
+    # Large rooms (4000-8000 sq units) - living room, master bedroom, or dining
+    elif area < 8000:
         if windows >= 2 and doors <= 2:
-            return "Bedroom"
-        elif doors >= 2:
-            return "Dining"
-        else:
-            return "Kitchen"
-    
-    # Large rooms (18+ m²) - living room, master bedroom, or combined spaces
-    else:
-        if windows >= 2 and doors <= 2:
-            # Prioritize living room for largest room
-            if room_idx == 0:  # First/largest room
+            # Larger rooms with good light are typically living or master bedroom
+            if room_idx == 0:  # Largest room
                 return "Living Room"
             else:
                 return "Bedroom"
-        elif doors == 1 and windows >= 2:
+        elif doors >= 2:
+            return "Dining"
+        else:
+            return "Living Room"
+    
+    # Very large rooms (8000+ sq units) - combined spaces or main living areas
+    else:
+        if doors >= 3:
+            return "Open Plan Living"
+        elif windows >= 3:
             return "Living Room"
         else:
             return "Living Room"
@@ -498,7 +495,23 @@ def generate_structured_document(detection_result: Dict[str, Any]) -> Dict[str, 
         room["doors"] = len(room_doors)
         room["connectedRooms"] = []  # Would need spatial analysis to determine
     
-    # Convert to recommendation system format
+    # Convert to recommendation system format and classify room types
+    # Sort rooms by area (largest first) for better classification
+    rooms.sort(key=lambda r: r["area"], reverse=True)
+    
+    # Classify room types based on characteristics
+    for idx, room in enumerate(rooms):
+        room["roomType"] = _classify_room_type(
+            room["area"],
+            room.get("doors", 0),
+            room.get("windows", 0),
+            room["bounds"],
+            idx,
+            len(rooms)
+        )
+        # Update room name to include type
+        room["name"] = f"{room['roomType']} {idx + 1}" if room["roomType"] != "Room" else f"Room {idx + 1}"
+    
     recommendation_input = {
         "floorPlan": {
             "canvasSize": {

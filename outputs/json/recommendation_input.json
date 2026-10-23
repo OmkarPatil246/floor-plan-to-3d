@@ -7,30 +7,12 @@
     "totalArea": 2613.5,
     "rooms": [
       {
-        "name": "Room 1",
-        "roomType": "Room",
-        "area": 1260.0,
-        "doors": 7,
-        "windows": 3,
-        "wallLength": 561.9578962178559,
-        "orientation": "square",
-        "connectedRooms": [],
-        "bounds": {
-          "left": 353.0,
-          "top": 214.0,
-          "right": 435.0,
-          "bottom": 298.0,
-          "width": 82.0,
-          "height": 84.0
-        }
-      },
-      {
-        "name": "Room 2",
-        "roomType": "Room",
+        "name": "Storage 1",
+        "roomType": "Storage",
         "area": 1353.5,
         "doors": 4,
         "windows": 2,
-        "wallLength": 623.3364306447764,
+        "wallLength": 438.0,
         "orientation": "square",
         "connectedRooms": [],
         "bounds": {
@@ -40,6 +22,24 @@
           "bottom": 267.0,
           "width": 99.0,
           "height": 120.0
+        }
+      },
+      {
+        "name": "Storage 2",
+        "roomType": "Storage",
+        "area": 1260.0,
+        "doors": 7,
+        "windows": 3,
+        "wallLength": 332.0,
+        "orientation": "square",
+        "connectedRooms": [],
+        "bounds": {
+          "left": 353.0,
+          "top": 214.0,
+          "right": 435.0,
+          "bottom": 298.0,
+          "width": 82.0,
+          "height": 84.0
         }
       }
     ]

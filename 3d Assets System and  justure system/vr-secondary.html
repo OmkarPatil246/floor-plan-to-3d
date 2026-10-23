@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VR Box - Secondary Device</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      touch-action: none;
+    }
+    
+    #vr-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .eye-view {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #left-eye, #right-eye {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .divider {
+      width: 2px;
+      background: #333;
+    }
+    
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      z-index: 1000;
+    }
+    
+    #loading.hidden {
+      display: none;
+    }
+    
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    #status-bar {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-family: Arial, sans-serif;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div>Connecting to primary device...</div>
+    <div id="connection-status"></div>
+  </div>
+
+  <div id="status-bar">📡 VR Mode Active</div>
+
+  <div id="vr-container">
+    <div class="eye-view">
+      <canvas id="left-eye"></canvas>
+    </div>
+    <div class="divider"></div>
+    <div class="eye-view">
+      <canvas id="right-eye"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Get session ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+
+    if (!sessionId) {
+      document.getElementById('connection-status').textContent = 'Error: No session ID';
+      throw new Error('No session ID provided');
+    }
+
+    const WS_URL = 'ws://localhost:3000';
+    let ws = null;
+    let peerConnection = null;
+    let dataChannel = null;
+
+    const leftCanvas = document.getElementById('left-eye');
+    const rightCanvas = document.getElementById('right-eye');
+    const leftCtx = leftCanvas.getContext('2d');
+    const rightCtx = rightCanvas.getContext('2d');
+
+    // Set canvas sizes
+    function resizeCanvases() {
+      const width = window.innerWidth / 2;
+      const height = window.innerHeight;
+      
+      leftCanvas.width = width;
+      leftCanvas.height = height;
+      rightCanvas.width = width;
+      rightCanvas.height = height;
+    }
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+
+    // Stereo view settings
+    const IPD = 0.064; // Inter-pupillary distance in meters (64mm average)
+    const eyeSeparation = 30; // pixels
+
+    // Device orientation (gyroscope)
+    let alpha = 0, beta = 0, gamma = 0;
+    let orientationPermissionGranted = false;
+
+    // Request device orientation permission (iOS 13+)
+    async function requestOrientation() {
+      if (typeof DeviceOrientationEvent !== 'undefined' && 
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission === 'granted') {
+            orientationPermissionGranted = true;
+            startOrientationTracking();
+          }
+        } catch (error) {
+          console.error('Orientation permission denied:', error);
+        }
+      } else {
+        // Non-iOS or older iOS
+        orientationPermissionGranted = true;
+        startOrientationTracking();
+      }
+    }
+
+    function startOrientationTracking() {
+      window.addEventListener('deviceorientation', (event) => {
+        alpha = event.alpha || 0;  // Z-axis rotation
+        beta = event.beta || 0;    // X-axis rotation
+        gamma = event.gamma || 0;  // Y-axis rotation
+        
+        // Send orientation to primary device
+        sendHeadMovement();
+      });
+    }
+
+    function sendHeadMovement() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const rotation = {
+          x: (beta * Math.PI) / 180,
+          y: (alpha * Math.PI) / 180,
+          z: (gamma * Math.PI) / 180
+        };
+        
+        ws.send(JSON.stringify({
+          type: 'head-movement',
+          rotation: rotation,
+          sessionId: sessionId
+        }));
+      }
+    }
+
+    // WebSocket connection
+    function connectWebSocket() {
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        ws.send(JSON.stringify({ 
+          type: 'register', 
+          role: 'secondary', 
+          sessionId: sessionId 
+        }));
+        document.getElementById('connection-status').textContent = 'Connected!';
+      };
+
+      ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'answer') {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        } else if (data.type === 'ice-candidate') {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else if (data.type === 'primary-ready') {
+          setupPeerConnection();
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('connection-status').textContent = 'Connection error!';
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket closed. Reconnecting...');
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    // WebRTC Peer Connection
+    async function setupPeerConnection() {
+      peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+
+      peerConnection.ondatachannel = (event) => {
+        dataChannel = event.channel;
+        
+        dataChannel.onmessage = (event) => {
+          // Received frame from primary device
+          const blob = new Blob([event.data], { type: 'image/jpeg' });
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          
+          img.onload = () => {
+            renderStereoView(img);
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        };
+
+        dataChannel.onopen = () => {
+          console.log('Data channel opened');
+          document.getElementById('loading').classList.add('hidden');
+          requestOrientation(); // Request gyro permission once connected
+        };
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          ws.send(JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate,
+            sessionId: sessionId
+          }));
+        }
+      };
+    }
+
+    // Render stereo view (side-by-side with slight offset for depth)
+    function renderStereoView(img) {
+      // Left eye (slightly offset left)
+      leftCtx.clearRect(0, 0, leftCanvas.width, leftCanvas.height);
+      leftCtx.drawImage(
+        img, 
+        -eyeSeparation, 0, 
+        leftCanvas.width + eyeSeparation * 2, 
+        leftCanvas.height
+      );
+
+      // Right eye (slightly offset right)
+      rightCtx.clearRect(0, 0, rightCanvas.width, rightCanvas.height);
+      rightCtx.drawImage(
+        img, 
+        eyeSeparation, 0, 
+        rightCanvas.width - eyeSeparation * 2, 
+        rightCanvas.height
+      );
+
+      // Apply barrel distortion for VR lenses (simplified)
+      applyBarrelDistortion(leftCtx, leftCanvas);
+      applyBarrelDistortion(rightCtx, rightCanvas);
+    }
+
+    // Simplified barrel distortion for VR lenses
+    function applyBarrelDistortion(ctx, canvas) {
+      // This is a placeholder - proper barrel distortion requires WebGL
+      // For production, use Three.js with proper lens distortion shaders
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // Distortion algorithm would go here
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Motion sensors for step detection (optional enhancement)
+    if ('Accelerometer' in window) {
+      try {
+        const accelerometer = new Accelerometer({ frequency: 60 });
+        accelerometer.addEventListener('reading', () => {
+          // Detect walking motion and send to primary device
+          // This can be used to enhance the VR experience
+        });
+        accelerometer.start();
+      } catch (error) {
+        console.log('Accelerometer not available:', error);
+      }
+    }
+
+    // Prevent screen from sleeping
+    let wakeLock = null;
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('Screen wake lock acquired');
+        }
+      } catch (error) {
+        console.error('Wake lock error:', error);
+      }
+    }
+
+    // Touch/click to keep screen active and request permissions
+    document.addEventListener('click', () => {
+      requestWakeLock();
+      if (!orientationPermissionGranted) {
+        requestOrientation();
+      }
+    }, { once: true });
+
+    // Initialize
+    connectWebSocket();
+
+    // Handle visibility change (re-acquire wake lock)
+    document.addEventListener('visibilitychange', () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    });
+
+    // Fullscreen mode
+    function enterFullscreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+
+    // Auto-enter fullscreen on first interaction
+    document.addEventListener('touchstart', enterFullscreen, { once: true });
+
+    // Lock orientation to landscape
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(err => {
+        console.log('Orientation lock not supported:', err);
+      });
+    }
+  </script>
+</body>
+</html>

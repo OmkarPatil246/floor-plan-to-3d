@@ -1,0 +1,671 @@
+import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+
+// =====================================================================
+//  ONE EURO FILTER  — adaptive jitter reduction, zero lag at speed
+// =====================================================================
+class OneEuroFilter {
+    constructor(minCutoff = 1.0, beta = 0.007, dCutoff = 1.0) {
+        this.minCutoff = minCutoff; this.beta = beta; this.dCutoff = dCutoff;
+        this.xPrev = null; this.dxPrev = 0; this.tPrev = null;
+    }
+    _a(cutoff, dt) { const tau = 1 / (2 * Math.PI * cutoff); return 1 / (1 + tau / dt); }
+    filter(x, tMs) {
+        if (this.xPrev === null) { this.xPrev = x; this.tPrev = tMs; return x; }
+        const dt = Math.max((tMs - this.tPrev) / 1000, 0.001);
+        this.tPrev = tMs;
+        const dx  = (x - this.xPrev) / dt;
+        const edx = this._a(this.dCutoff, dt) * dx + (1 - this._a(this.dCutoff, dt)) * this.dxPrev;
+        this.dxPrev = edx;
+        const cutoff = this.minCutoff + this.beta * Math.abs(edx);
+        const xf = this._a(cutoff, dt) * x + (1 - this._a(cutoff, dt)) * this.xPrev;
+        this.xPrev = xf; return xf;
+    }
+    reset() { this.xPrev = null; this.dxPrev = 0; this.tPrev = null; }
+}
+
+// =====================================================================
+//  GESTURE CONSTANTS
+// =====================================================================
+/**
+ * Gesture  Shape                   3D-Scene Action
+ * -------- ----------------------- ---------------------------
+ * OPEN     All 5 fingers spread    Move cursor (hover)
+ * POINT    Only index up           Precise cursor aim
+ * PINCH    Thumb+Index tips close  Select object / Drag it
+ * PEACE    Index+Middle up         DELETE selected  (hold 0.7s)
+ * THREE    Index+Middle+Ring up    DUPLICATE selected (hold 0.7s)
+ * FIST     All fingers curled      CANCEL / Deselect
+ * 2-PINCH  Both hands pinching     SCALE (spread) + ROTATE (twist)
+ */
+export const GESTURE = {
+    NONE:           'NONE',
+    OPEN_HAND:      'OPEN_HAND',
+    POINT:          'POINT',
+    PINCH:          'PINCH',
+    PEACE:          'PEACE',
+    THREE_FINGERS:  'THREE_FINGERS',
+    FIST:           'FIST',
+    TWO_HAND_PINCH: 'TWO_HAND_PINCH',
+};
+
+const G_COLOR = {
+    OPEN_HAND:     '#00f7ff',
+    POINT:         '#ffff00',
+    PINCH:         '#00ff88',
+    PEACE:         '#ff4488',
+    THREE_FINGERS: '#ff8800',
+    FIST:          '#ff3333',
+    NONE:          '#ffffff',
+};
+
+const HAND_CONNECTIONS = [
+    [0,1],[1,2],[2,3],[3,4],
+    [0,5],[5,6],[6,7],[7,8],
+    [5,9],[9,10],[10,11],[11,12],
+    [9,13],[13,14],[14,15],[15,16],
+    [13,17],[17,18],[18,19],[19,20],[0,17],
+];
+
+// =====================================================================
+//  HAND GESTURE CONTROLLER  v2
+// =====================================================================
+export class HandGestureController {
+    constructor(options = {}) {
+        this.options = Object.assign({
+            minDetectionConfidence: 0.60,
+            minTrackingConfidence:  0.60,
+        }, options);
+
+        // MediaPipe core
+        this.handLandmarker    = null;
+        this.isCameraRunning   = false;
+        this.isLandmarkerReady = false;
+        this.video = null; this.canvas = null; this.ctx = null;
+        this.animFrameId = null; this.videoCallbackId = null;
+        this.lastVideoTime = -1;
+
+        // Two stable hand slots
+        this.trackedSlots = [this._makeSlot(0,'#00f7ff'), this._makeSlot(1,'#00ff88')];
+        this.hands = [];
+
+        // Pinch drag
+        this.primaryPinching = false;
+        this.pinchStartPos   = { x: 0.5, y: 0.5 };
+        this.pinchStartTime  = 0;
+
+        // Two-hand
+        this.isTwoHandPinching = false;
+        this.twoHandStartDist  = 0;
+        this.twoHandStartAngle = 0;
+
+        // Hold-to-confirm gestures
+        this.peaceHoldStart = 0; this.peaceHoldFired = false; this.PEACE_HOLD_MS = 700;
+        this.threeHoldStart = 0; this.threeHoldFired = false; this.THREE_HOLD_MS = 700;
+
+        // Fist cooldown
+        this.lastFistTime = 0; this.FIST_COOLDOWN_MS = 500;
+
+        // Cursor history for pre-pinch aiming (tracks where hand was 100ms ago)
+        this.cursorHistory = [];
+
+        // -------- CALLBACKS (wired by app.js) --------
+        this.onPointerMove      = null; // (pos, ndc, gesture)
+        this.onPinchStart       = null; // (ndc, {pointer,screenPos,hoveredElem})
+        this.onPinchMove        = null; // (ndc, {pointer,screenPos,delta})
+        this.onPinchEnd         = null; // (ndc, {pointer,screenPos,hoveredElem})
+        this.onTwoHandTransform = null; // ({scaleMultiplier,deltaAngle,dist,angle})
+        this.onDeleteGesture    = null; // ()  peace sign held
+        this.onDuplicateGesture = null; // ()  three fingers held
+        this.onCancel           = null; // ()  fist
+        this.onError            = null; // (err)
+
+        this._initUI();
+    }
+
+    // ------- slot factory -------
+    _makeSlot(id, color) {
+        return {
+            id, color, active: false,
+            x: 0.5, y: 0.5,
+            screenX: window.innerWidth  * 0.5,
+            screenY: window.innerHeight * 0.5,
+            isPinching: false, isFist: false,
+            gesture: GESTURE.NONE, lastSeen: 0,
+            filterX: new OneEuroFilter(1.0, 0.007),
+            filterY: new OneEuroFilter(1.0, 0.007),
+            landmarks: null,
+        };
+    }
+
+    // ------- DOM init -------
+    _initUI() {
+        this.cursor0 = document.getElementById('hand-cursor-0');
+        this.cursor1 = document.getElementById('hand-cursor-1');
+        this.video   = document.getElementById('gesture-video');
+        this.canvas  = document.getElementById('gesture-canvas');
+
+        if (!this.video || !this.canvas) {
+            let pip = document.getElementById('gesture-pip-container');
+            if (!pip) { pip = document.createElement('div'); pip.id = 'gesture-pip-container'; document.body.appendChild(pip); }
+            pip.innerHTML = `
+                <div class="pip-header">
+                    <div class="pip-title-wrap">
+                        <span class="pip-status-dot" id="pip-live-dot"></span>
+                        <span class="pip-title">HAND GESTURE CONTROL</span>
+                    </div>
+                    <div class="pip-controls">
+                        <button id="pip-toggle-btn" title="Toggle camera">&#128247;</button>
+                        <button id="pip-minimize-btn" title="Minimize">&#8722;</button>
+                    </div>
+                </div>
+                <div class="pip-body" id="pip-body">
+                    <video id="gesture-video" autoplay playsinline muted></video>
+                    <canvas id="gesture-canvas"></canvas>
+                    <div id="gesture-permission-overlay" style="display:none;">
+                        <p>Allow camera for gesture control</p>
+                        <button id="camera-grant-btn">&#128247; Allow Camera</button>
+                    </div>
+                    <div id="gesture-hud">
+                        <div id="gesture-status-badge">Starting...</div>
+                        <div id="gesture-sub-status">Initialising hand tracker</div>
+                        <button id="gesture-retry-btn" style="display:none;margin-top:5px;background:#00f7ff;color:#000;border:none;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:bold;">&#128260; Retry</button>
+                    </div>
+                </div>`;
+            this.video  = document.getElementById('gesture-video');
+            this.canvas = document.getElementById('gesture-canvas');
+        }
+
+        this.ctx               = this.canvas?.getContext('2d') || null;
+        this.statusBadge       = document.getElementById('gesture-status-badge');
+        this.subStatus         = document.getElementById('gesture-sub-status');
+        this.pipBody           = document.getElementById('pip-body');
+        this.retryBtn          = document.getElementById('gesture-retry-btn');
+        this.grantBtn          = document.getElementById('camera-grant-btn');
+        this.permissionOverlay = document.getElementById('gesture-permission-overlay');
+        this.liveDot           = document.getElementById('pip-live-dot');
+
+        document.getElementById('gesture-retry-btn')?.addEventListener('click', e => { e.stopPropagation(); this.start(); });
+        document.getElementById('camera-grant-btn')?.addEventListener('click',  e => { e.stopPropagation(); this.start(); });
+
+        const minBtn = document.getElementById('pip-minimize-btn');
+        if (minBtn && this.pipBody) {
+            minBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                const h = this.pipBody.style.display === 'none';
+                this.pipBody.style.display = h ? 'block' : 'none';
+                minBtn.textContent = h ? '-' : '+';
+            });
+        }
+        const tog = document.getElementById('pip-toggle-btn');
+        if (tog) {
+            tog.addEventListener('click', e => {
+                e.stopPropagation();
+                if (this.isCameraRunning) {
+                    this.stop();
+                    this.updateStatus('Camera Paused','Click camera icon to resume','status-error');
+                    if (this.retryBtn) this.retryBtn.style.display = 'inline-block';
+                    tog.style.opacity = '0.5';
+                    if (this.liveDot) this.liveDot.className = 'pip-status-dot paused';
+                } else {
+                    tog.style.opacity = '1.0';
+                    this.start();
+                }
+            });
+        }
+    }
+
+    updateStatus(badge, sub = '', cls = '') {
+        if (this.statusBadge) { this.statusBadge.textContent = badge; if (cls) this.statusBadge.className = cls; }
+        if (this.subStatus && sub !== '') this.subStatus.textContent = sub;
+    }
+
+    // ------- MediaPipe init -------
+    async initMediaPipe() {
+        try {
+            this.updateStatus('Loading AI...','Downloading hand tracker model');
+            const vision = await FilesetResolver.forVisionTasks(
+                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+            );
+            const cfg = {
+                baseOptions: {
+                    modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+                    delegate: 'GPU',
+                },
+                runningMode: 'VIDEO', numHands: 2,
+                minHandDetectionConfidence: this.options.minDetectionConfidence,
+                minHandPresenceConfidence:  this.options.minDetectionConfidence,
+                minTrackingConfidence:      this.options.minTrackingConfidence,
+            };
+            try { this.handLandmarker = await HandLandmarker.createFromOptions(vision, cfg); }
+            catch { cfg.baseOptions.delegate = 'CPU'; this.handLandmarker = await HandLandmarker.createFromOptions(vision, cfg); }
+            this.isLandmarkerReady = true;
+            console.log('HandLandmarker ready (2 hands)');
+            return true;
+        } catch (err) {
+            console.error('MediaPipe init failed:', err);
+            this.updateStatus('AI Load Error','Check network / camera permission','status-error');
+            if (this.retryBtn) this.retryBtn.style.display = 'inline-block';
+            if (this.onError) this.onError(err);
+            return false;
+        }
+    }
+
+    // ------- Camera -------
+    async start() {
+        if (this.isCameraRunning) return;
+        if (this.video?.srcObject) { try { this.video.srcObject.getTracks().forEach(t => t.stop()); } catch {} this.video.srcObject = null; }
+        if (this.retryBtn) this.retryBtn.style.display = 'none';
+        if (this.permissionOverlay) this.permissionOverlay.style.display = 'none';
+        if (!this.isLandmarkerReady) { const ok = await this.initMediaPipe(); if (!ok) return; }
+        this.updateStatus('Requesting Camera...','Please allow webcam access');
+        let stream = null;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { width:{ideal:640}, height:{ideal:480}, frameRate:{ideal:60,min:30}, facingMode:'user' },
+                audio: false,
+            });
+        } catch {
+            try { stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
+            catch (err) {
+                this.updateStatus('Camera Blocked','Click address-bar icon to allow camera','status-error');
+                if (this.permissionOverlay) this.permissionOverlay.style.display = 'flex';
+                if (this.retryBtn) this.retryBtn.style.display = 'inline-block';
+                if (this.liveDot) this.liveDot.className = 'pip-status-dot error';
+                if (this.onError) this.onError(err);
+                return;
+            }
+        }
+        if (!stream) return;
+        this.video  = document.getElementById('gesture-video')  || this.video;
+        this.canvas = document.getElementById('gesture-canvas') || this.canvas;
+        if (!this.video || !this.canvas) this._initUI();
+        this.ctx = this.canvas?.getContext('2d') || null;
+        try {
+            this.video.srcObject = stream;
+            await new Promise(res => {
+                this.video.onloadedmetadata = () => this.video.play().then(res).catch(res);
+                setTimeout(res, 1500);
+            });
+            if (this.canvas) { this.canvas.width = this.video.videoWidth || 320; this.canvas.height = this.video.videoHeight || 240; }
+            this.isCameraRunning = true;
+            if (this.retryBtn) this.retryBtn.style.display = 'none';
+            if (this.permissionOverlay) this.permissionOverlay.style.display = 'none';
+            if (this.liveDot) this.liveDot.className = 'pip-status-dot live';
+            this.updateStatus('Camera Active','Show your hand to begin','status-hover');
+            this._startLoop();
+        } catch (err) {
+            this.updateStatus('Playback Error', err.message, 'status-error');
+            if (this.retryBtn) this.retryBtn.style.display = 'inline-block';
+        }
+    }
+
+    stop() {
+        this.isCameraRunning = false;
+        if (this.videoCallbackId !== null && this.video && 'cancelVideoFrameCallback' in this.video) {
+            try { this.video.cancelVideoFrameCallback(this.videoCallbackId); } catch {} this.videoCallbackId = null;
+        }
+        if (this.animFrameId) { cancelAnimationFrame(this.animFrameId); this.animFrameId = null; }
+        if (this.video?.srcObject) { this.video.srcObject.getTracks().forEach(t => t.stop()); this.video.srcObject = null; }
+        if (this.cursor0) this.cursor0.style.display = 'none';
+        if (this.cursor1) this.cursor1.style.display = 'none';
+        this.trackedSlots.forEach(s => { s.active = false; s.filterX.reset(); s.filterY.reset(); });
+        this.hands = [];
+    }
+
+    // ------- Detection loop -------
+    _startLoop() {
+        const tick = t => {
+            if (!this.isCameraRunning) return;
+            this._detect(t);
+            if (this.video && 'requestVideoFrameCallback' in this.video)
+                this.videoCallbackId = this.video.requestVideoFrameCallback(tick);
+            else
+                this.animFrameId = requestAnimationFrame(() => tick(performance.now()));
+        };
+        if (this.video && 'requestVideoFrameCallback' in this.video)
+            this.videoCallbackId = this.video.requestVideoFrameCallback(tick);
+        else
+            this.animFrameId = requestAnimationFrame(() => tick(performance.now()));
+    }
+
+    _detect(ts) {
+        if (!this.isCameraRunning || !this.video || !this.handLandmarker) return;
+        if (this.video.readyState < 2) return;
+        let t = ts || performance.now();
+        if (t <= this.lastVideoTime) t = this.lastVideoTime + 1;
+        this.lastVideoTime = t;
+        try { const r = this.handLandmarker.detectForVideo(this.video, t); this._process(r, t); } catch {}
+    }
+
+    // ------- Main frame processor -------
+    _process(results, now) {
+        if (!this.ctx || !this.canvas) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const numHands = results.landmarks?.length || 0;
+        if (numHands === 0) { this._noHands(now); return; }
+
+        const cands = [];
+        for (let i = 0; i < Math.min(numHands, 2); i++) cands.push(this._classify(results.landmarks[i]));
+
+        this._assignSlots(cands, now);
+        this._drawOverlays();
+
+        const s0 = this.trackedSlots[0], s1 = this.trackedSlots[1];
+        this.hands = [s0, s1].filter(s => s.active);
+        this._dispatch(s0, s1, now);
+    }
+
+    // ------- Classify one hand into a gesture + cursor position -------
+    _classify(lm) {
+        const wrist  = lm[0], midMCP = lm[9];
+        const palmSz = Math.hypot(wrist.x - midMCP.x, wrist.y - midMCP.y) || 0.18;
+        const D   = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+        const tw  = i => D(lm[i], wrist);
+        const pw  = i => D(lm[i - 2], wrist);
+
+        const iUp = tw(8)  > pw(8)  * 1.15;
+        const mUp = tw(12) > pw(12) * 1.15;
+        const rUp = tw(16) > pw(16) * 1.15;
+        const pUp = tw(20) > pw(20) * 1.15;
+        const fUp = [iUp, mUp, rUp, pUp].filter(Boolean).length;
+
+        const normPinch = D(lm[4], lm[8]) / palmSz;
+
+        const isFist = tw(8)  < pw(8)  * 1.05
+                    && tw(12) < pw(12) * 1.05
+                    && tw(16) < pw(16) * 1.05
+                    && tw(20) < pw(20) * 1.05
+                    && D(lm[4], lm[9]) < palmSz * 1.2;
+
+        let gesture = GESTURE.NONE;
+        if      (isFist)                     gesture = GESTURE.FIST;
+        else if (normPinch < 0.32)           gesture = GESTURE.PINCH;
+        else if (iUp && mUp && !rUp && !pUp) gesture = GESTURE.PEACE;
+        else if (iUp && mUp && rUp  && !pUp) gesture = GESTURE.THREE_FINGERS;
+        else if (iUp && !mUp && !rUp && !pUp)gesture = GESTURE.POINT;
+        else if (fUp >= 4)                   gesture = GESTURE.OPEN_HAND;
+
+        // Cursor: index tip, mirrored + active-margin calibrated
+        const tip = lm[8];
+        const MIN = 0.06, MAX = 0.94;
+        const cx = Math.max(0, Math.min(1, (tip.x - MIN) / (MAX - MIN)));
+        const cy = Math.max(0, Math.min(1, (tip.y - MIN) / (MAX - MIN)));
+        return { landmarks: lm, palmSz, normPinch, isFist, gesture,
+            rawScreenX: (1 - cx) * window.innerWidth,
+            rawScreenY: cy * window.innerHeight };
+    }
+
+    // ------- Stable slot assignment -------
+    _assignSlots(cands, now) {
+        if (cands.length === 1) {
+            const c = cands[0];
+            let t = 0;
+            if (!this.trackedSlots[0].active && this.trackedSlots[1].active) t = 1;
+            else if (this.trackedSlots[0].active && this.trackedSlots[1].active) {
+                const d0 = Math.hypot(c.rawScreenX - this.trackedSlots[0].screenX, c.rawScreenY - this.trackedSlots[0].screenY);
+                const d1 = Math.hypot(c.rawScreenX - this.trackedSlots[1].screenX, c.rawScreenY - this.trackedSlots[1].screenY);
+                t = d0 <= d1 ? 0 : 1;
+            }
+            const ot = 1 - t;
+            if (now - this.trackedSlots[ot].lastSeen > 120) { this.trackedSlots[ot].active = false; this.trackedSlots[ot].filterX.reset(); this.trackedSlots[ot].filterY.reset(); }
+            this._fillSlot(this.trackedSlots[t], cands[0], now);
+        } else if (cands.length >= 2) {
+            const [c0, c1] = cands;
+            const d00 = Math.hypot(c0.rawScreenX - this.trackedSlots[0].screenX, c0.rawScreenY - this.trackedSlots[0].screenY);
+            const d11 = Math.hypot(c1.rawScreenX - this.trackedSlots[1].screenX, c1.rawScreenY - this.trackedSlots[1].screenY);
+            const d01 = Math.hypot(c0.rawScreenX - this.trackedSlots[1].screenX, c0.rawScreenY - this.trackedSlots[1].screenY);
+            const d10 = Math.hypot(c1.rawScreenX - this.trackedSlots[0].screenX, c1.rawScreenY - this.trackedSlots[0].screenY);
+            if (this.trackedSlots[0].active && this.trackedSlots[1].active && (d01 + d10 < d00 + d11)) {
+                this._fillSlot(this.trackedSlots[1], c0, now); this._fillSlot(this.trackedSlots[0], c1, now);
+            } else {
+                this._fillSlot(this.trackedSlots[0], c0, now); this._fillSlot(this.trackedSlots[1], c1, now);
+            }
+        }
+    }
+
+    _fillSlot(slot, cand, now) {
+        slot.active = true; slot.lastSeen = now;
+        slot.landmarks = cand.landmarks; slot.palmSz = cand.palmSz;
+        slot.isFist = cand.isFist; slot.gesture = cand.gesture;
+        // Dual-threshold hysteresis: enter<0.30, release>0.42
+        slot.isPinching = slot.isPinching ? (cand.normPinch < 0.42) : (cand.normPinch < 0.30);
+        slot.screenX = slot.filterX.filter(cand.rawScreenX, now);
+        slot.screenY = slot.filterY.filter(cand.rawScreenY, now);
+        slot.x = Math.max(0, Math.min(1, slot.screenX / window.innerWidth));
+        slot.y = Math.max(0, Math.min(1, slot.screenY / window.innerHeight));
+    }
+
+    // ------- Draw skeleton + cursor DOM -------
+    _drawOverlays() {
+        for (const slot of this.trackedSlots) {
+            if (!slot.active || !slot.landmarks) continue;
+            const color  = G_COLOR[slot.gesture] || '#fff';
+            const cursor = slot.id === 0 ? this.cursor0 : this.cursor1;
+            const w = this.canvas.width, h = this.canvas.height;
+            const ctx = this.ctx;
+
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            HAND_CONNECTIONS.forEach(([i, j]) => {
+                const p1 = slot.landmarks[i], p2 = slot.landmarks[j];
+                ctx.beginPath(); ctx.moveTo((1 - p1.x)*w, p1.y*h); ctx.lineTo((1 - p2.x)*w, p2.y*h); ctx.stroke();
+            });
+            slot.landmarks.forEach((p, idx) => {
+                const pp = idx === 4 || idx === 8;
+                ctx.fillStyle = pp ? (slot.isPinching ? '#00ff88' : '#ffff00') : '#fff';
+                ctx.beginPath(); ctx.arc((1-p.x)*w, p.y*h, pp ? 5 : 2.5, 0, Math.PI*2); ctx.fill();
+            });
+            const t4 = slot.landmarks[4], t8 = slot.landmarks[8];
+            ctx.strokeStyle = slot.isPinching ? '#00ff88' : 'rgba(255,255,255,0.4)';
+            ctx.lineWidth   = slot.isPinching ? 3.5 : 1.5;
+            ctx.beginPath(); ctx.moveTo((1-t4.x)*w, t4.y*h); ctx.lineTo((1-t8.x)*w, t8.y*h); ctx.stroke();
+            ctx.fillStyle = color; ctx.font = 'bold 10px monospace';
+            ctx.fillText(slot.gesture, (1 - slot.landmarks[0].x)*w - 20, slot.landmarks[0].y*h - 14);
+            if (cursor) {
+                cursor.style.display = 'block';
+                cursor.style.transform = `translate3d(${slot.screenX}px,${slot.screenY}px,0) translate(-50%,-50%)`;
+                cursor.style.borderColor = color;
+                cursor.style.boxShadow   = `0 0 14px ${color}`;
+                slot.isPinching ? cursor.classList.add('pinching') : cursor.classList.remove('pinching');
+            }
+        }
+        if (!this.trackedSlots[0].active && this.cursor0) this.cursor0.style.display = 'none';
+        if (!this.trackedSlots[1].active && this.cursor1) this.cursor1.style.display = 'none';
+    }
+
+    _drawTwoHandLine(s0, s1) {
+        if (!this.ctx) return;
+        const w = this.canvas.width, h = this.canvas.height;
+        this.ctx.strokeStyle = '#ff00ff'; this.ctx.lineWidth = 3;
+        this.ctx.setLineDash([6, 4]);
+        this.ctx.beginPath(); this.ctx.moveTo(s0.x*w, s0.y*h); this.ctx.lineTo(s1.x*w, s1.y*h); this.ctx.stroke();
+        this.ctx.setLineDash([]);
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.beginPath(); this.ctx.arc((s0.x+s1.x)/2*w, (s0.y+s1.y)/2*h, 7, 0, Math.PI*2); this.ctx.fill();
+    }
+
+    _drawArc(slot, prog, color) {
+        if (!this.ctx) return;
+        const w = this.canvas.width, h = this.canvas.height;
+        this.ctx.strokeStyle = color; this.ctx.lineWidth = 5;
+        this.ctx.beginPath(); this.ctx.arc(slot.x*w, slot.y*h, 28, -Math.PI/2, -Math.PI/2 + prog*2*Math.PI); this.ctx.stroke();
+    }
+
+    // ------- No hands: cleanup -------
+    _noHands(now) {
+        this.trackedSlots.forEach(s => { s.active=false; s.filterX.reset(); s.filterY.reset(); });
+        if (this.cursor0) this.cursor0.style.display = 'none';
+        if (this.cursor1) this.cursor1.style.display = 'none';
+        if (this.primaryPinching) {
+            this.primaryPinching = false;
+            const s = this.trackedSlots[0];
+            if (this.onPinchEnd) this.onPinchEnd(this._ndc(s), { pointer:{x:s.x,y:s.y}, hoveredElem:null });
+        }
+        this.isTwoHandPinching = false;
+        this.peaceHoldStart=0; this.peaceHoldFired=false;
+        this.threeHoldStart=0; this.threeHoldFired=false;
+        this.updateStatus('Show Hand','Bring hand into camera view','status-idle');
+        this.hands = [];
+    }
+
+    // ------- Gesture dispatch (priority-ordered) -------
+    _dispatch(s0, s1, now) {
+        if (!this.hands.length) return;
+        const primary = s0.active ? s0 : s1;
+
+        // P1 FIST -> CANCEL
+        if (this.hands.some(h => h.isFist)) {
+            if (now - this.lastFistTime > 200) {
+                this.lastFistTime = now;
+                this.primaryPinching = false; this.isTwoHandPinching = false;
+                this.peaceHoldStart=0; this.peaceHoldFired=false;
+                this.threeHoldStart=0; this.threeHoldFired=false;
+                this.updateStatus('FIST - CANCEL!','Deselected / action cancelled','status-error');
+                if (this.onCancel) this.onCancel();
+            }
+            return;
+        }
+        if (now - this.lastFistTime < this.FIST_COOLDOWN_MS) {
+            this.primaryPinching = false;
+            this.updateStatus('Ready','Show next gesture','status-hover');
+            return;
+        }
+
+        // P2 PEACE SIGN -> DELETE (hold)
+        if (primary.gesture === GESTURE.PEACE && this.hands.length === 1) {
+            if (!this.peaceHoldStart) this.peaceHoldStart = now;
+            const held = now - this.peaceHoldStart;
+            const prog = Math.min(held / this.PEACE_HOLD_MS, 1);
+            this._drawArc(primary, prog, '#ff4488');
+            if (!this.peaceHoldFired && held >= this.PEACE_HOLD_MS) {
+                this.peaceHoldFired = true;
+                this.updateStatus('DELETE!','Selected object removed','status-error');
+                if (this.onDeleteGesture) this.onDeleteGesture();
+            } else if (!this.peaceHoldFired) {
+                this.updateStatus('Peace Sign = DELETE','Hold ' + ((this.PEACE_HOLD_MS-held)/1000).toFixed(1) + 's...','status-error');
+            }
+            return;
+        } else { this.peaceHoldStart=0; this.peaceHoldFired=false; }
+
+        // P3 THREE FINGERS -> DUPLICATE (hold)
+        if (primary.gesture === GESTURE.THREE_FINGERS && this.hands.length === 1) {
+            if (!this.threeHoldStart) this.threeHoldStart = now;
+            const held = now - this.threeHoldStart;
+            const prog = Math.min(held / this.THREE_HOLD_MS, 1);
+            this._drawArc(primary, prog, '#ff8800');
+            if (!this.threeHoldFired && held >= this.THREE_HOLD_MS) {
+                this.threeHoldFired = true;
+                this.updateStatus('DUPLICATE!','Object duplicated','status-confirm');
+                if (this.onDuplicateGesture) this.onDuplicateGesture();
+            } else if (!this.threeHoldFired) {
+                this.updateStatus('3 Fingers = DUPLICATE','Hold ' + ((this.THREE_HOLD_MS-held)/1000).toFixed(1) + 's...','status-hover');
+            }
+            return;
+        } else { this.threeHoldStart=0; this.threeHoldFired=false; }
+
+        // P4 TWO-HAND PINCH -> SCALE + ROTATE
+        if (s0.active && s1.active && s0.isPinching && s1.isPinching) {
+            this.primaryPinching = false;
+            const dist  = Math.hypot(s1.x-s0.x, s1.y-s0.y);
+            const angle = Math.atan2(s1.y-s0.y, s1.x-s0.x);
+            this._drawTwoHandLine(s0, s1);
+            if (!this.isTwoHandPinching) {
+                this.isTwoHandPinching = true;
+                this.twoHandStartDist  = Math.max(dist, 0.04);
+                this.twoHandStartAngle = angle;
+                this.updateStatus('Two-Hand Active','Spread = Scale  |  Twist = Rotate','status-grab');
+            } else {
+                const sm = dist / this.twoHandStartDist;
+                const da = angle - this.twoHandStartAngle;
+                this.updateStatus('Scale:'+sm.toFixed(2)+'x Rotate:'+Math.round(da*180/Math.PI)+'deg','Release both pinches to stop','status-grab');
+                if (this.onTwoHandTransform) this.onTwoHandTransform({ scaleMultiplier:sm, deltaAngle:da, dist, angle });
+            }
+            return;
+        } else { this.isTwoHandPinching = false; }
+
+        // P5 SINGLE PINCH -> SELECT + DRAG
+        if (primary.isPinching) {
+            const sx = primary.screenX, sy = primary.screenY;
+            const ndc = this._ndc(primary);
+            if (!this.primaryPinching) {
+                this.primaryPinching = true;
+                this.pinchStartTime  = now;
+                this.pinchStartPos   = { x: primary.x, y: primary.y };
+                const pre    = this._prePinch(sx, sy);
+                const preNdc = this._ndcScreen(pre.x, pre.y);
+                this.updateStatus('Pinch - SELECT / GRAB','Hold and move hand to drag','status-grab');
+                if (this.onPinchStart) {
+                    this.onPinchStart(preNdc, {
+                        pointer:     { x: primary.x, y: primary.y },
+                        screenPos:   { x: pre.x, y: pre.y },
+                        hoveredElem: document.elementFromPoint(pre.x, pre.y),
+                    });
+                }
+            } else {
+                this._rec(sx, sy);
+                this.updateStatus('Dragging...','Release pinch to drop  |  Drag to trash to delete','status-grab');
+                if (this.onPinchMove) {
+                    this.onPinchMove(ndc, {
+                        pointer:   { x: primary.x, y: primary.y },
+                        screenPos: { x: sx, y: sy },
+                        delta:     { x: primary.x - this.pinchStartPos.x, y: primary.y - this.pinchStartPos.y },
+                    });
+                }
+            }
+            return;
+        }
+
+        // Pinch released -> drop
+        if (this.primaryPinching) {
+            this.primaryPinching = false;
+            const sx = primary.screenX, sy = primary.screenY;
+            this.updateStatus('Dropped','Object placed','status-confirm');
+            if (this.onPinchEnd) {
+                this.onPinchEnd(this._ndc(primary), {
+                    pointer:     { x:primary.x, y:primary.y },
+                    screenPos:   { x:sx, y:sy },
+                    hoveredElem: document.elementFromPoint(sx, sy),
+                });
+            }
+            return;
+        }
+
+        // P6 OPEN / POINT -> move cursor
+        const sx = primary.screenX, sy = primary.screenY;
+        this._rec(sx, sy);
+        const msgs = {
+            [GESTURE.POINT]:     'Pointing - aim cursor',
+            [GESTURE.OPEN_HAND]: this.hands.length===2 ? 'Two Hands - pinch both to scale' : 'Open Hand - move cursor',
+        };
+        this.updateStatus(msgs[primary.gesture] || 'Move Hand','Pinch=Select | Peace=Delete | 3Fingers=Duplicate | Fist=Cancel','status-hover');
+        if (this.onPointerMove) this.onPointerMove({ x:primary.x, y:primary.y }, this._ndc(primary), primary.gesture);
+    }
+
+    // ------- Helpers -------
+    _ndc(slot) { return { x: slot.x*2-1, y: -(slot.y*2-1) }; }
+    _ndcScreen(sx, sy) { return { x:(sx/window.innerWidth)*2-1, y:-((sy/window.innerHeight)*2-1) }; }
+
+    _rec(x, y) {
+        const t = performance.now();
+        this.cursorHistory.push({ x, y, t });
+        while (this.cursorHistory.length && t - this.cursorHistory[0].t > 600) this.cursorHistory.shift();
+    }
+
+    _prePinch(fallX, fallY) {
+        const now = performance.now();
+        for (let i = this.cursorHistory.length-1; i >= 0; i--) {
+            if (now - this.cursorHistory[i].t >= 100) return this.cursorHistory[i];
+        }
+        return this.cursorHistory[0] || { x:fallX, y:fallY };
+    }
+
+    // Legacy compatibility aliases
+    getNdcCoordinates(ptr) { return { x: ptr.x*2-1, y: -(ptr.y*2-1) }; }
+    get primaryGesture() {
+        const s = this.trackedSlots[0].active ? this.trackedSlots[0] : this.trackedSlots[1];
+        return s.active ? s.gesture : GESTURE.NONE;
+    }
+
+    // startDetectionLoop kept for any legacy code that calls it directly
+    startDetectionLoop() { this._startLoop(); }
+    detectCurrentFrame(ts) { this._detect(ts); }
+}

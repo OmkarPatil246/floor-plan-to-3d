@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VR Mode - Primary Device</title>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    #qr-section {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    #qr-section h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+    
+    #qr-section p {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    #qrcode {
+      margin: 20px auto;
+      padding: 0;
+      background: white;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    
+    #status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f0f0f0;
+      border-radius: 10px;
+      color: #333;
+      font-weight: 600;
+    }
+    
+    #status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    #walk-mode {
+      display: none;
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+    
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    #asset-list {
+      position: fixed;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px 10px;
+      border-radius: 0 10px 10px 0;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    
+    .asset-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      text-align: center;
+      min-width: 100px;
+    }
+    
+    .asset-item:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #28a9ff;
+      transform: translateX(5px);
+    }
+    
+    .asset-item.selected {
+      background: rgba(40, 169, 255, 0.3);
+      border-color: #28a9ff;
+    }
+    
+    .asset-icon {
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+    
+    .asset-name {
+      font-size: 12px;
+      color: white;
+    }
+    
+    #gesture-status {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      color: white;
+    }
+    
+    #video-feed {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 200px;
+      height: 150px;
+      border: 3px solid #28a9ff;
+      border-radius: 10px;
+      z-index: 1000;
+      object-fit: cover;
+    }
+    
+    .info-panel {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      font-size: 14px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="qr-section">
+    <h1>🥽 VR Box Mode</h1>
+    <p>Scan this QR code with your secondary device (phone for VR box)</p>
+    <div id="qrcode"></div>
+    <div id="status">⏳ Waiting for secondary device to connect...</div>
+    <p style="margin-top: 20px; font-size: 14px; color: #999;">
+      Connection ID: <strong id="session-id" style="color: #667eea;"></strong>
+    </p>
+  </div>
+
+  <div id="walk-mode">
+    <canvas id="canvas3d"></canvas>
+    <video id="video-feed" autoplay playsinline muted></video>
+    
+    <div class="info-panel">
+      🎮 VR Walk Mode Active | 👋 Use hand gestures to select and place assets
+    </div>
+    
+    <div id="gesture-status">
+      <div>Gesture: <span id="gesture-text">None</span></div>
+      <div>Camera: <span id="camera-status">Starting...</span></div>
+    </div>
+    
+    <div id="asset-list">
+      <!-- Assets will be populated here -->
+    </div>
+  </div>
+
+  <!-- Load ceiling module -->
+  <script src="ceiling.js"></script>
+  
+  <script>
+    // Generate unique session ID
+    const sessionId = Math.random().toString(36).substring(7);
+    document.getElementById('session-id').textContent = sessionId;
+
+    // Generate QR code using online API
+    const qrUrl = `${window.location.origin}/vr-secondary.html?session=${sessionId}`;
+    
+    function generateQRCode(text, size = 256) {
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 10px; display: inline-block;">
+          <div style="font-size: 12px; color: #333; margin-bottom: 10px; text-align: center; font-weight: 600;">
+            📱 Scan with your phone
+          </div>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}" 
+               alt="QR Code" 
+               style="display: block; width: ${size}px; height: ${size}px; border: 2px solid #667eea; border-radius: 8px;">
+          <div style="margin-top: 10px; padding: 8px; background: #f0f0f0; border-radius: 6px;">
+            <div style="font-size: 10px; color: #999; margin-bottom: 4px;">Or visit:</div>
+            <a href="${text}" 
+               style="font-size: 11px; color: #667eea; text-decoration: none; word-break: break-all; font-weight: 600;"
+               target="_blank">${text}</a>
+          </div>
+        </div>
+      `;
+    }
+    
+    generateQRCode(qrUrl, 256);
+
+    // WebSocket connection for signaling
+    const WS_URL = 'ws://localhost:3000';
+    let ws = null;
+    let peerConnection = null;
+    let dataChannel = null;
+    let stream = null;
+    let secondaryConnected = false;
+
+    // Three.js scene setup
+    let scene, camera, renderer, floor, placedObjects = [];
+    const furnitureList = [
+      { name: 'Sofa', icon: '🛋️', path: 'assets/Sofa_01_CC0/Sofa_01/Sofa_01.glb' },
+      { name: 'Chair', icon: '🪑', path: 'assets/modern_arm_chair_01_CC0/modern_arm_chair_01/modern_arm_chair_01.glb' },
+      { name: 'Table', icon: '🪑', path: 'assets/round_wooden_table_01_CC0/round_wooden_table_01/round_wooden_table_01.glb' },
+      { name: 'Drawer', icon: '🗄️', path: 'assets/vintage_wooden_drawer_01_CC0/vintage_wooden_drawer_01/vintage_wooden_drawer_01.glb' },
+    ];
+
+    // IndexedDB functions to load exported home
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('VRHomeDatabase', 1);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function loadExportedHome() {
+      try {
+        const db = await openDB();
+        const transaction = db.transaction(['homes'], 'readonly');
+        const store = transaction.objectStore('homes');
+        const request = store.get('exportedHome');
+
+        return new Promise((resolve, reject) => {
+          request.onsuccess = () => {
+            if (request.result && request.result.data) {
+              console.log('✅ Loaded home from IndexedDB');
+              resolve(request.result.data);
+            } else {
+              console.log('⚠️ No home found in IndexedDB');
+              resolve(null);
+            }
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('❌ Failed to load home from IndexedDB:', error);
+        return null;
+      }
+    }
+
+    async function initThreeJS() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87CEEB);
+      scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 1.7, 5);
+
+      renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(10, 10, 5);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      // Load exported home from IndexedDB
+      const homeData = await loadExportedHome();
+      
+      if (homeData) {
+        console.log('🏠 Loading your home into VR mode...');
+        await reconstructSceneFromData(homeData);
+      } else {
+        console.log('⚠️ No home found - using default environment');
+        // Floor
+        const floorGeometry = new THREE.PlaneGeometry(20, 20);
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+        floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(20, 20);
+        scene.add(gridHelper);
+
+        // Add default ceiling for default environment
+        const defaultCeiling = createCeilingAssembly({
+          minX: -10,
+          maxX: 10,
+          minZ: -10,
+          maxZ: 10,
+          wallHeight: 2.5,
+          ceilingColor: 0xf8f6f2
+        });
+        scene.add(defaultCeiling);
+        console.log('✅ Added default ceiling');
+      }
+
+      animate();
+    }
+
+    async function reconstructSceneFromData(data) {
+      const loader = new THREE.GLTFLoader();
+      
+      // Store bounds for ceiling calculation
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      let wallHeight = 2.5; // Default wall height
+      
+      // Create floor/walls from data if available
+      if (data.walls) {
+        data.walls.forEach(wall => {
+          const geometry = new THREE.BoxGeometry(wall.width, wall.height, wall.depth);
+          const material = new THREE.MeshStandardMaterial({ color: wall.color || 0xcccccc });
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(wall.position.x, wall.position.y, wall.position.z);
+          mesh.rotation.set(wall.rotation.x, wall.rotation.y, wall.rotation.z);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          scene.add(mesh);
+          
+          // Track bounds
+          const halfWidth = wall.width / 2;
+          const halfDepth = wall.depth / 2;
+          minX = Math.min(minX, wall.position.x - halfWidth);
+          maxX = Math.max(maxX, wall.position.x + halfWidth);
+          minZ = Math.min(minZ, wall.position.z - halfDepth);
+          maxZ = Math.max(maxZ, wall.position.z + halfDepth);
+          wallHeight = Math.max(wallHeight, wall.height);
+        });
+      }
+
+      // Load floor
+      if (data.floor) {
+        const floorGeometry = new THREE.PlaneGeometry(data.floor.width || 20, data.floor.depth || 20);
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: data.floor.color || 0x808080 });
+        floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = data.floor.y || 0;
+        floor.receiveShadow = true;
+        scene.add(floor);
+        
+        // Update bounds from floor if walls didn't provide them
+        if (minX === Infinity) {
+          const halfW = (data.floor.width || 20) / 2;
+          const halfD = (data.floor.depth || 20) / 2;
+          minX = -halfW;
+          maxX = halfW;
+          minZ = -halfD;
+          maxZ = halfD;
+        }
+      }
+
+      // Load ceiling data if available, otherwise create based on bounds
+      if (data.ceiling) {
+        const ceiling = createCeilingAssembly({
+          minX: data.ceiling.minX,
+          maxX: data.ceiling.maxX,
+          minZ: data.ceiling.minZ,
+          maxZ: data.ceiling.maxZ,
+          wallHeight: data.ceiling.wallHeight || wallHeight,
+          ceilingColor: data.ceiling.color || 0xf8f6f2
+        });
+        scene.add(ceiling);
+        console.log('✅ Loaded ceiling from data');
+      } else if (minX !== Infinity) {
+        // Create ceiling based on wall/floor bounds
+        const ceiling = createCeilingAssembly({
+          minX: minX,
+          maxX: maxX,
+          minZ: minZ,
+          maxZ: maxZ,
+          wallHeight: wallHeight,
+          ceilingColor: 0xf8f6f2
+        });
+        scene.add(ceiling);
+        console.log('✅ Created ceiling from bounds:', { minX, maxX, minZ, maxZ, wallHeight });
+      }
+
+      // Load placed furniture/assets
+      if (data.objects && data.objects.length > 0) {
+        for (const obj of data.objects) {
+          try {
+            const gltf = await new Promise((resolve, reject) => {
+              loader.load(obj.path, resolve, undefined, reject);
+            });
+            
+            const model = gltf.scene;
+            model.position.set(obj.position.x, obj.position.y, obj.position.z);
+            model.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
+            model.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
+            
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            
+            scene.add(model);
+            placedObjects.push(model);
+          } catch (error) {
+            console.error(`Failed to load object: ${obj.name}`, error);
+          }
+        }
+      }
+
+      console.log(`✅ Loaded ${placedObjects.length} objects into VR scene`);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+      
+      // Capture and send frame to secondary device
+      if (secondaryConnected && dataChannel && dataChannel.readyState === 'open') {
+        captureAndSendFrame();
+      }
+    }
+
+    let lastFrameTime = 0;
+    const FRAME_INTERVAL = 1000 / 30; // 30 FPS
+
+    function captureAndSendFrame() {
+      const now = Date.now();
+      if (now - lastFrameTime < FRAME_INTERVAL) return;
+      lastFrameTime = now;
+
+      try {
+        const canvas = document.getElementById('canvas3d');
+        canvas.toBlob((blob) => {
+          if (blob && dataChannel.readyState === 'open') {
+            blob.arrayBuffer().then(buffer => {
+              dataChannel.send(buffer);
+            });
+          }
+        }, 'image/jpeg', 0.7);
+      } catch (e) {
+        console.error('Frame capture error:', e);
+      }
+    }
+
+    // Initialize asset list
+    function initAssetList() {
+      const assetList = document.getElementById('asset-list');
+      furnitureList.forEach((asset, index) => {
+        const item = document.createElement('div');
+        item.className = 'asset-item';
+        item.dataset.index = index;
+        item.innerHTML = `
+          <div class="asset-icon">${asset.icon}</div>
+          <div class="asset-name">${asset.name}</div>
+        `;
+        item.addEventListener('click', () => selectAsset(index));
+        assetList.appendChild(item);
+      });
+    }
+
+    let selectedAssetIndex = -1;
+
+    function selectAsset(index) {
+      selectedAssetIndex = index;
+      document.querySelectorAll('.asset-item').forEach((item, i) => {
+        item.classList.toggle('selected', i === index);
+      });
+      document.getElementById('gesture-text').textContent = `Selected: ${furnitureList[index].name}`;
+    }
+
+    // Camera and gesture detection
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user', width: 640, height: 480 } 
+        });
+        const video = document.getElementById('video-feed');
+        video.srcObject = stream;
+        document.getElementById('camera-status').textContent = '✅ Active';
+        
+        startGestureDetection(video);
+      } catch (error) {
+        console.error('Camera error:', error);
+        document.getElementById('camera-status').textContent = '❌ Error';
+      }
+    }
+
+    function startGestureDetection(video) {
+      document.getElementById('gesture-text').textContent = 'Ready';
+    }
+
+    // WebRTC setup
+    function setupWebRTC() {
+      ws = new WebSocket(WS_URL);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        ws.send(JSON.stringify({ type: 'register', role: 'primary', sessionId }));
+      };
+
+      ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'secondary-connected') {
+          onSecondaryConnected();
+        } else if (data.type === 'offer') {
+          await handleOffer(data.offer);
+        } else if (data.type === 'ice-candidate') {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } else if (data.type === 'head-movement') {
+          updateCameraFromHeadMovement(data.rotation);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('status').textContent = '❌ Connection error. Refresh the page.';
+      };
+    }
+
+    async function onSecondaryConnected() {
+      secondaryConnected = true;
+      document.getElementById('status').textContent = '✅ Secondary device connected!';
+      document.getElementById('status').classList.add('connected');
+      
+      setTimeout(() => {
+        enterWalkMode();
+      }, 2000);
+    }
+
+    function enterWalkMode() {
+      document.getElementById('qr-section').style.display = 'none';
+      document.getElementById('walk-mode').style.display = 'block';
+      
+      initThreeJS();
+      initAssetList();
+      startCamera();
+      setupPeerConnection();
+    }
+
+    async function setupPeerConnection() {
+      peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+
+      dataChannel = peerConnection.createDataChannel('frames', {
+        ordered: false,
+        maxRetransmits: 0
+      });
+
+      dataChannel.onopen = () => {
+        console.log('Data channel opened');
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          ws.send(JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate,
+            sessionId
+          }));
+        }
+      };
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      
+      ws.send(JSON.stringify({
+        type: 'offer',
+        offer: offer,
+        sessionId
+      }));
+    }
+
+    async function handleOffer(offer) {
+      if (!peerConnection) {
+        await setupPeerConnection();
+      }
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      
+      ws.send(JSON.stringify({
+        type: 'answer',
+        answer: answer,
+        sessionId
+      }));
+    }
+
+    function updateCameraFromHeadMovement(rotation) {
+      if (camera) {
+        camera.rotation.set(rotation.x, rotation.y, rotation.z);
+      }
+    }
+
+    // Initialize
+    setupWebRTC();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+    });
+
+    // Keyboard controls for testing
+    window.addEventListener('keydown', (e) => {
+      const speed = 0.1;
+      if (e.key === 'w' && camera) camera.position.z -= speed;
+      if (e.key === 's' && camera) camera.position.z += speed;
+      if (e.key === 'a' && camera) camera.position.x -= speed;
+      if (e.key === 'd' && camera) camera.position.x += speed;
+    });
+  </script>
+</body>
+</html>

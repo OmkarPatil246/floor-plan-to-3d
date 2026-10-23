@@ -1,0 +1,33 @@
+﻿════════════════════════════════════════════════════════════════
+    📱 YOUR PUBLIC URLS FOR PHONE ACCESS
+════════════════════════════════════════════════════════════════
+
+Copy these URLs and open them on your phone's browser:
+
+🎨 Main Server (3D Viewer & AI Parser):
+   https://vacate-exposable-avid.ngrok-free.dev
+
+
+════════════════════════════════════════════════════════════════
+    🎯 RECOMMENDED WORKFLOW
+════════════════════════════════════════════════════════════════
+
+1. Open ArchGen 3D UI on your phone (URL above)
+2. Login or Register
+3. Click "AI Parse" to access the 3D viewer
+4. Upload a floor plan
+5. View in 3D and enter VR mode
+
+════════════════════════════════════════════════════════════════
+    📱 FOR VR MODE
+════════════════════════════════════════════════════════════════
+
+Direct VR URL:
+Main Server URL + /viewer/vr-walk-mode.html
+
+Example: https://abc123.ngrok.app/viewer/vr-walk-mode.html
+
+════════════════════════════════════════════════════════════════
+
+Generated: 2026-10-22 09:12:28
+

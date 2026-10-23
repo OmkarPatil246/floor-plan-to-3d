@@ -1,0 +1,130 @@
+════════════════════════════════════════════════════════════════
+    📱 COPY THESE URLs TO YOUR PHONE
+════════════════════════════════════════════════════════════════
+
+⭐ MAIN INTERFACE (ArchGen 3D UI):
+────────────────────────────────────────────────────────────────
+
+Check ngrok dashboard for the ArchGen UI URL (Port 5174):
+http://localhost:4040
+
+Look for: "Port 5174" or "localhost:5174"
+Copy that public URL (https://...ngrok.app or similar)
+
+This is the MAIN entry point with:
+  • Login/Register
+  • Profile management
+  • AI Parse feature
+  • Full UI experience
+
+
+🎨 3D VIEWER & AI PARSER:
+────────────────────────────────────────────────────────────────
+
+Already available from previous setup:
+https://chatty-dodos-brake.loca.lt
+
+This provides:
+  • Upload floor plans
+  • AI processing
+  • 3D visualization
+  • VR mode access
+
+
+💡 RECOMMENDATION SYSTEM:
+────────────────────────────────────────────────────────────────
+
+Check ngrok dashboard for Recommendation UI (Port 5173):
+http://localhost:4040
+
+Look for: "Port 5173" or "localhost:5173"
+
+
+════════════════════════════════════════════════════════════════
+    🎯 HOW TO ACCESS ON YOUR PHONE
+════════════════════════════════════════════════════════════════
+
+OPTION 1: Start with ArchGen UI (Recommended)
+────────────────────────────────────────────
+1. Open http://localhost:4040 on your PC
+2. Find the URL for "Port 5174" (ArchGen UI)
+3. Copy that HTTPS URL
+4. Open it on your phone
+5. Login/Register
+6. Click "AI Parse" to access 3D viewer
+
+OPTION 2: Direct to 3D Viewer
+────────────────────────────────────────────
+Use: https://chatty-dodos-brake.loca.lt
+• Upload floor plans directly
+• Process and view in 3D
+• Access VR mode
+
+
+════════════════════════════════════════════════════════════════
+    🥽 FOR VR MODE ON PHONE
+════════════════════════════════════════════════════════════════
+
+Method 1: From Main Viewer
+────────────────────────────────────────────
+1. Open: https://chatty-dodos-brake.loca.lt
+2. Click "Enter VR Walk Mode" button
+3. Tap "Enter VR"
+4. Put phone in VR box
+
+Method 2: Direct VR URL
+────────────────────────────────────────────
+Add to main viewer URL: /viewer/vr-walk-mode.html
+
+Example:
+https://chatty-dodos-brake.loca.lt/viewer/vr-walk-mode.html
+
+
+════════════════════════════════════════════════════════════════
+    📊 ALL SERVICES & PORTS
+════════════════════════════════════════════════════════════════
+
+Service                  Port    Check Dashboard For Public URL
+────────────────────────────────────────────────────────────────
+🏗️ ArchGen UI (Main)    5174    http://localhost:4040
+🎨 3D Viewer/Parser     8080    Already: chatty-dodos-brake.loca.lt
+💡 Recommendation UI    5173    http://localhost:4040
+🔧 Recommendation API   8000    http://localhost:4040
+
+
+════════════════════════════════════════════════════════════════
+    ⚡ QUICK ACTIONS
+════════════════════════════════════════════════════════════════
+
+1. Open ngrok dashboard:
+   http://localhost:4040
+
+2. Find URLs for ports: 5174, 5173, 8000
+
+3. Copy the HTTPS URLs to your phone
+
+4. For VR: Use port 8080 URL or add /viewer/vr-walk-mode.html
+
+
+════════════════════════════════════════════════════════════════
+    💡 TIPS
+════════════════════════════════════════════════════════════════
+
+✅ Use HTTPS URLs (not HTTP) for best compatibility
+✅ Keep all terminal windows open
+✅ First time: Click "Continue" on warning pages
+✅ For VR: Hold phone upright/landscape when entering
+✅ Press "Recenter" button if VR view is wrong
+
+
+════════════════════════════════════════════════════════════════
+
+🎉 YOU'RE ALL SET!
+
+1. Open: http://localhost:4040
+2. Copy the public URLs you need
+3. Open them on your phone
+4. Enjoy ArchGen 3D!
+
+════════════════════════════════════════════════════════════════
+Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')

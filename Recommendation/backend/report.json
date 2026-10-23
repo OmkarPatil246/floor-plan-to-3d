@@ -1,10 +1,10 @@
 {
     "issues": [],
-    "ai_recommendations": "This floor plan features a cohesive arrangement of 2 rooms. The overall layout is functional and meets basic architectural standards. No major design issues were detected during the analysis. It should provide a comfortable and efficient living environment.",
+    "ai_recommendations": "### Overall Design Review\n\nThe proposed floor plan offers a balanced layout with ample storage areas and generous natural lighting, ensuring both comfort and efficiency. The total area of 2613.5 square units supports a well-rounded living space. Natural light from windows illuminates each room perfectly, enhancing the visual appeal and energy efficiency of the home. The two rooms dedicated to storage provide ample space for daily activities while maintaining good air circulation and sun exposure. \n\nHowever, there is room for improvement in the design where natural light does not fully penetrate through the doors leading to these rooms. This could potentially lead to issues such as poor indoor air quality or increased heating demands during winter months. To address this, a strategically placed skylight should be installed to",
     "top_suggestions": [],
     "overall_score": 100,
     "room_scores": {
-        "Room 1": 100,
-        "Room 2": 100
+        "Storage 1": 100,
+        "Storage 2": 100
     }
 }

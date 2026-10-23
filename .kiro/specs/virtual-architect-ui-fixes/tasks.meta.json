@@ -1,0 +1,112 @@
+{
+  "pbtResults": {
+    "1. Write bug condition exploration test for passive event listener error": {
+      "status": "passed",
+      "failingExample": "Counterexamples documented by the exploration test:\n\nPRIMARY COUNTEREXAMPLE:\n- User scrolls mouse wheel on canvas (deltaY: -100 for zoom in, or +100 for zoom out)\n- Browser console logs: \"Unable to preventDefault inside passive event listener invocation\"\n- Zoom occurs correctly, but with console error spam\n\nPROPERTY-BASED COUNTEREXAMPLES (10 random cases tested):\n- deltaY=-215 (zoom in) → factor=1.1, passive error\n- deltaY=2 (zoom out) → factor=0.9, passive error  \n- deltaY=994 (zoom out) → factor=0.9, passive error\n- deltaY=-316 (zoom in) → factor=1.1, passive error\n- deltaY=997 (zoom out) → factor=0.9, passive error\n- deltaY=-7 (zoom in) → factor=1.1, passive error\n- deltaY=-143 (zoom in) → factor=1.1, passive error\n- deltaY=2 (zoom out) → factor=0.9, passive error\n- deltaY=993 (zoom out) → factor=0.9, passive error\n- deltaY=234 (zoom out) → factor=0.9, passive error\n\nCONCRETE SCENARIOS:\n1. User scrolls UP (deltaY: -100) → Zoom factor 1.1, CONSOLE ERROR\n2. User scrolls DOWN (deltaY: 100) → Zoom factor 0.9, CONSOLE ERROR\n3. Small scroll up (deltaY: -50) → Zoom factor 1.1, CONSOLE ERROR\n4. Large scroll down (deltaY: 500) → Zoom factor 0.9, CONSOLE ERROR\n\nRAPID SCROLLING SCENARIO:\n- 5 consecutive wheel events in 200ms\n- Result: 5 console errors logged\n- User experience degraded due to console spam\n\nROOT CAUSE CONFIRMED:\n- App.jsx line 559: onWheel={handleCanvasWheel} uses React synthetic event (passive)\n- App.jsx line 432: handleCanvasWheel calls e.preventDefault()\n- React 17+ registers wheel listeners as passive by default\n- Passive listeners cannot call preventDefault()\n\nThe bug exists and manifests for ALL wheel events on the canvas.",
+      "lastRunTimestamp": 1792492924067
+    }
+  },
+  "executionHistory": {
+    "1. Write bug condition exploration test for passive event listener error": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491814476
+      },
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491828843
+      }
+    ],
+    "2. Write preservation property tests for canvas interactions (BEFORE implementing fix)": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491815630
+      },
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491829814
+      }
+    ],
+    "3.1 Implement the native DOM event listener fix": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491815804
+      }
+    ],
+    "3.2 Verify bug condition exploration test now passes": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491815909
+      }
+    ],
+    "3.3 Verify preservation tests still pass": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816167
+      }
+    ],
+    "4. Checkpoint - Ensure all Bug 1 tests pass": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816402
+      }
+    ],
+    "5. Write bug condition exploration test for chat message alignment": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816490
+      }
+    ],
+    "6. Write preservation property tests for chat functionality (BEFORE implementing fix)": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816579
+      }
+    ],
+    "7.1 Implement the CSS rules for chat-message class": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816701
+      }
+    ],
+    "7.2 Verify bug condition exploration test now passes": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816810
+      }
+    ],
+    "7.3 Verify preservation tests still pass": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816876
+      }
+    ],
+    "8. Checkpoint - Ensure all Bug 2 tests pass": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491816950
+      }
+    ],
+    "9. Run full integration tests": [
+      {
+        "executionId": "076be25a-9b93-4983-8fd2-b989e3cec84e",
+        "chatSessionId": "sess_d9c92bee-5939-4165-af3f-188f73ff0d26",
+        "timestamp": 1792491817027
+      }
+    ]
+  }
+}

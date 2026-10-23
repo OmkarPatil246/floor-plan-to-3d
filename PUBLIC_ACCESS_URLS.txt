@@ -1,0 +1,83 @@
+═══════════════════════════════════════════════════════════
+    📱 FLOORPLAN-TO-3D - PUBLIC ACCESS URLS 📱
+═══════════════════════════════════════════════════════════
+
+🌍 PUBLIC URL (Works from ANYWHERE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  https://chatty-dodos-brake.loca.lt
+
+  📋 Copy this URL to your phone's browser
+  🌐 Works from any network, anywhere in the world
+  ⚠️  First time: Click "Continue" on the warning page
+  💾 Bookmark it for easy access!
+
+
+📶 LOCAL NETWORK URL (Same WiFi only):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  http://10.141.113.231:8080
+
+  📋 Use this on devices connected to SAME WiFi
+  ⚡ Faster than public URL
+  🔒 More secure (local network only)
+
+
+💻 LOCALHOST URLs (This computer only):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Main Viewer:       http://localhost:8080
+  Recommendations:   http://localhost:5173
+  Backend API:       http://localhost:8000
+
+
+✅ SERVICES STATUS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ Main Server (Port 8080)         - RUNNING
+  ✓ Backend API (Port 8000)         - RUNNING
+  ✓ Recommendation UI (Port 5173)   - RUNNING
+  ✓ Public Tunnel (localtunnel)     - ACTIVE
+
+
+📱 QUICK START - PHONE ACCESS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Open Chrome/Safari on your phone
+  2. Type or paste: https://chatty-dodos-brake.loca.lt
+  3. Click "Continue" on the warning page (first time only)
+  4. You'll see the Floor Plan upload interface
+  5. Upload a floor plan and view it in 3D!
+
+
+⚠️  IMPORTANT NOTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  • Keep ALL terminal windows open
+  • Don't close the "localtunnel" window
+  • This URL is temporary and changes each restart
+  • Share this URL with anyone to demo your work
+
+
+🔧 TROUBLESHOOTING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Can't access?
+  → Wait 30 seconds for services to fully start
+  → Check that all terminal windows are still open
+  → Try refreshing the page on your phone
+
+  Warning page on phone?
+  → This is normal for localtunnel
+  → Just click "Continue" to proceed
+  → You only see this once per session
+
+  URL not working?
+  → Make sure main server (port 8080) is running
+  → Check: http://localhost:8080 on your computer
+  → If that works, the public URL should work too
+
+
+═══════════════════════════════════════════════════════════
+Generated: $(Get-Date)
+═══════════════════════════════════════════════════════════

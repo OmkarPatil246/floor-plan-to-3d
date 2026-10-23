@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Floor Plan VR Viewer</title>
+<style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;font-family:Arial,sans-serif;color:#fff;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  #view{display:block;width:100%;height:100%;touch-action:none}
+  #hud{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:16px;box-sizing:border-box;z-index:10}
+  #top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .panel{background:#101820cc;border:1px solid #ffffff30;border-radius:12px;padding:10px 12px;max-width:60%;font-size:13px;line-height:1.4}
+  button{pointer-events:auto;border:0;border-radius:12px;padding:12px 15px;background:#28a9ff;color:#061521;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 16px #0005;touch-action:none;-webkit-tap-highlight-color:transparent}
+  button.alt{background:#ffffffdd}
+  #topBtns{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  #bottom{display:flex;justify-content:center;align-items:flex-end;gap:10px;flex-wrap:wrap}
+  #status{width:100%;font-size:12px;opacity:.9;text-align:center;padding:8px;background:#10182066;border-radius:8px}
+  #loading{position:fixed;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;color:#fff;font-size:16px;line-height:1.6}
+  body.loaded #loading{display:none}
+  body.vr #hud{display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="loading">
+  <svg width="60" height="60" viewBox="0 0 24 24" style="margin-bottom:20px;animation:spin 1s linear infinite">
+    <circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" fill="none" stroke-dasharray="60" stroke-linecap="round"/>
+  </svg>
+  <div id="loading-text">Loading floor plan...</div>
+</div>
+<div id="hud">
+  <div id="top">
+    <div class="panel">
+      <b>Floor Plan VR</b><br>
+      <span id="plan-info">No floor plan loaded</span>
+    </div>
+    <div id="topBtns">
+      <button id="arvr">Enter VR</button>
+      <button id="recenter" class="alt">Recenter</button>
+    </div>
+  </div>
+  <div id="bottom">
+    <button id="forward">▲ Forward</button>
+    <button id="left">◀ Left</button>
+    <button id="back">▼ Back</button>
+    <button id="right">Right ▶</button>
+    <div id="status">Loading VR support…</div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const canvas = document.querySelector('#view');
+const statusEl = document.querySelector('#status');
+const arvrBtn = document.querySelector('#arvr');
+const recenterBtn = document.querySelector('#recenter');
+const loadingEl = document.querySelector('#loading');
+const loadingText = document.querySelector('#loading-text');
+const planInfo = document.querySelector('#plan-info');
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WebXR Polyfill Setup - EXACT PATTERN FROM WORKING VR FILE
+══════════════════════════════════════════════════════════════════════════ */
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=src;
+    s.onload=res;
+    s.onerror=()=>rej(new Error('Could not load '+src));
+    document.head.appendChild(s);
+  });
+}
+
+async function setupXR(){
+  try{
+    let native=false;
+    if(navigator.xr){
+      try{ native=await navigator.xr.isSessionSupported('immersive-vr'); }catch(e){}
+    }
+    if(native){
+      console.log('✅ Native WebXR VR support detected');
+      return;
+    }
+    
+    console.log('🔧 Installing WebXR Polyfill for Cardboard VR...');
+    
+    // CRITICAL: Remove browser's incomplete XR implementation
+    if('xr' in navigator){
+      try{ delete Navigator.prototype.xr; }catch(e){}
+      try{ delete navigator.xr; }catch(e){}
+    }
+    
+    // Remove all XR classes so polyfill can install complete set
+    for(const name of Object.getOwnPropertyNames(window)){
+      if(/^XR[A-Z]/.test(name)){
+        try{ delete window[name]; }catch(e){}
+      }
+    }
+    
+    await loadScript('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.min.js');
+    if(window.WebXRPolyfill) new window.WebXRPolyfill({cardboard:true});
+    
+    console.log('✅ WebXR Polyfill installed');
+  }catch(err){
+    console.warn('XR setup error:',err);
+  }
+}
+
+const xrReady = setupXR().then(async()=>{
+  let ok=false;
+  try{ ok=!!(navigator.xr && await navigator.xr.isSessionSupported('immersive-vr')); }catch(e){}
+  statusEl.textContent = ok
+    ? 'Ready · tap "Enter VR", then put the phone in your VR box.'
+    : 'VR not available. Use Chrome on HTTPS/localhost.';
+  return ok;
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scene Setup
+══════════════════════════════════════════════════════════════════════════ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf0ede8);
+scene.fog = new THREE.Fog(0xf0ede8, 22, 90);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 250);
+const rig = new THREE.Group();
+rig.add(camera);
+scene.add(rig);
+
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.xr.enabled = true;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMappingExposure = 1.0;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Lighting - Architectural Style
+══════════════════════════════════════════════════════════════════════════ */
+const hemi = new THREE.HemisphereLight(0xfff7ee, 0xddd5c8, 0.75);
+scene.add(hemi);
+
+const sun = new THREE.DirectionalLight(0xfff3d6, 1.35);
+sun.position.set(8, 16, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-30;sun.shadow.camera.right=30;
+sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;
+sun.shadow.camera.far=60;
+scene.add(sun);
+
+const bounceLight = new THREE.DirectionalLight(0xffe4c0, 0.38);
+bounceLight.position.set(-7, 9, -6);
+scene.add(bounceLight);
+
+const ambientLight = new THREE.AmbientLight(0xfff4e8, 0.40);
+scene.add(ambientLight);
+
+// Ground plane
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(200,200),
+  new THREE.MeshStandardMaterial({color:0xe8e4db, roughness:1})
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+ground.position.y = -0.01;
+scene.add(ground);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Floor Plan Container
+══════════════════════════════════════════════════════════════════════════ */
+const planGroup = new THREE.Group();
+scene.add(planGroup);
+
+let floorPlanLoaded = false;
+let planCenter = new THREE.Vector3(0, 0, 0);
+
+// Geometry constants (same as desktop viewer)
+const EYE_HEIGHT = 0.54;
+const WALL_HEIGHT = 2.7;
+const DOOR_HEIGHT = 2.1;
+const WINDOW_SILL = 0.9;
+const WINDOW_HEIGHT = 1.2;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Load Floor Plan from Server Session
+══════════════════════════════════════════════════════════════════════════ */
+async function loadFloorPlan(){
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session');
+  
+  if(!sessionId){
+    loadingText.textContent = '❌ No session ID in URL';
+    setTimeout(()=>{
+      loadingText.textContent = 'Please generate a new QR code from the main viewer';
+    },1000);
+    return false;
+  }
+  
+  try{
+    loadingText.textContent = `Loading session ${sessionId}...`;
+    
+    const response = await fetch(`/api/vr-session/${sessionId}`);
+    if(!response.ok){
+      throw new Error(`Session not found (${response.status})`);
+    }
+    
+    const result = await response.json();
+    if(!result.ok || !result.floorplan_data){
+      throw new Error('No floor plan data in session');
+    }
+    
+    loadingText.textContent = 'Building 3D floor plan...';
+    
+    const data = result.floorplan_data;
+    console.log('📦 Received floor plan data keys:', Object.keys(data));
+    
+    // Check if this is the detection result format (what desktop uses)
+    if (data.polygons) {
+      console.log('✅ Using detection result format (same as desktop)');
+      console.log('📊 Polygons:', {
+        walls: data.polygons.wall?.length || 0,
+        doors: data.polygons.door?.length || 0,
+        windows: data.polygons.window?.length || 0
+      });
+      
+      // Use the data directly - it's already in the right format
+      await buildFloorPlanFromDetection(data);
+      
+    } else {
+      // Legacy: structured document format
+      console.log('⚠️ Using structured document format (legacy)');
+      const floorPlan = data.floorPlan || {};
+      const geometryDetails = data.geometryDetails || {};
+      
+      const rawWalls = geometryDetails.walls || [];
+      const walls = rawWalls.map(wall => ({
+        outer: wall.polygon || wall.outer || []
+      }));
+      
+      const fp = {
+        rooms: floorPlan.rooms || [],
+        walls: walls,
+        image_width: floorPlan.canvasSize?.width || 512,
+        image_height: floorPlan.canvasSize?.height || 512
+      };
+      
+      if(!fp.walls || fp.walls.length === 0){
+        throw new Error('No walls found in structured document');
+      }
+      
+      await buildFloorPlanLegacy(fp);
+    }
+    
+    console.log(`📦 Floor plan: ${data.polygons.wall?.length||0} walls, ${data.polygons.door?.length||0} doors, ${data.polygons.window?.length||0} windows`);
+    planInfo.textContent = `${data.polygons.wall?.length||0} walls loaded`;
+    
+    // Build floor plan geometry using detection result format
+    await buildFloorPlanFromDetection(data);
+    
+    floorPlanLoaded = true;
+    document.body.classList.add('loaded');
+    console.log('✅ Floor plan loaded successfully');
+    return true;
+    
+  }catch(err){
+    console.error('❌ Floor plan load error:', err);
+    loadingText.textContent = `❌ ${err.message}`;
+    planInfo.textContent = 'Load failed';
+    setTimeout(()=>{
+      loadingText.innerHTML = `<div>Failed to load floor plan</div><div style="font-size:12px;margin-top:10px">${err.message}</div><button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:white;color:#667eea;border:none;border-radius:8px;cursor:pointer;font-weight:700">Reload</button>`;
+    },1000);
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Build 3D Floor Plan from Detection Result (SAME FORMAT AS DESKTOP)
+══════════════════════════════════════════════════════════════════════════ */
+async function buildFloorPlanFromDetection(data){
+  const walls = data.polygons.wall || [];
+  const doors = data.polygons.door || [];
+  const windows = data.polygons.window || [];
+  
+  if(walls.length === 0){
+    throw new Error('No walls in floor plan');
+  }
+  
+  // Calculate bounding box from all polygons
+  const bbox = {minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity};
+  
+  for(const wall of walls){
+    for(const [x, y] of wall.outer){
+      bbox.minX = Math.min(bbox.minX, x);
+      bbox.maxX = Math.max(bbox.maxX, x);
+      bbox.minY = Math.min(bbox.minY, y);
+      bbox.maxY = Math.max(bbox.maxY, y);
+    }
+  }
+  
+  const width = bbox.maxX - bbox.minX;
+  const height = bbox.maxY - bbox.minY;
+  const scale = 15 / Math.max(width, height); // Target size 15 units
+  const cx = (bbox.minX + bbox.maxX) / 2;
+  const cy = (bbox.minY + bbox.maxY) / 2;
+  
+  planCenter.set(0, EYE_HEIGHT, 0);
+  
+  console.log(`📐 Scale: ${scale.toFixed(3)}, Center: (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
+  console.log(`📏 Size: ${width.toFixed(1)} x ${height.toFixed(1)}`);
+  
+  // Materials (same as desktop)
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0xf5f0e8,
+    roughness: 0.9,
+    metalness: 0.0
+  });
+  
+  const doorMat = new THREE.MeshStandardMaterial({
+    color: 0x8b7355,
+    roughness: 0.7
+  });
+  
+  const windowMat = new THREE.MeshStandardMaterial({
+    color: 0xb8d4e8,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.6
+  });
+  
+  // Build walls (same algorithm as desktop)
+  for(const wall of walls){
+    const outer = wall.outer || [];
+    if(outer.length < 2) continue;
+    
+    for(let i=0; i<outer.length; i++){
+      const p1 = outer[i];
+      const p2 = outer[(i+1) % outer.length];
+      
+      const x1 = (p1[0] - cx) * scale;
+      const z1 = -(p1[1] - cy) * scale;
+      const x2 = (p2[0] - cx) * scale;
+      const z2 = -(p2[1] - cy) * scale;
+      
+      const len = Math.hypot(x2-x1, z2-z1);
+      if(len < 0.01) continue;
+      
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(len, WALL_HEIGHT, 0.08),
+        wallMat
+      );
+      
+      mesh.position.set((x1+x2)/2, WALL_HEIGHT/2, (z1+z2)/2);
+      mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      planGroup.add(mesh);
+    }
+  }
+  
+  // Build doors
+  for(const door of doors){
+    const outer = door.outer || [];
+    if(outer.length < 2) continue;
+    
+    for(let i=0; i<outer.length; i++){
+      const p1 = outer[i];
+      const p2 = outer[(i+1) % outer.length];
+      
+      const x1 = (p1[0] - cx) * scale;
+      const z1 = -(p1[1] - cy) * scale;
+      const x2 = (p2[0] - cx) * scale;
+      const z2 = -(p2[1] - cy) * scale;
+      
+      const len = Math.hypot(x2-x1, z2-z1);
+      if(len < 0.01) continue;
+      
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(len, DOOR_HEIGHT, 0.06),
+        doorMat
+      );
+      
+      mesh.position.set((x1+x2)/2, DOOR_HEIGHT/2, (z1+z2)/2);
+      mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      planGroup.add(mesh);
+    }
+  }
+  
+  // Build windows
+  for(const window of windows){
+    const outer = window.outer || [];
+    if(outer.length < 2) continue;
+    
+    for(let i=0; i<outer.length; i++){
+      const p1 = outer[i];
+      const p2 = outer[(i+1) % outer.length];
+      
+      const x1 = (p1[0] - cx) * scale;
+      const z1 = -(p1[1] - cy) * scale;
+      const x2 = (p2[0] - cx) * scale;
+      const z2 = -(p2[1] - cy) * scale;
+      
+      const len = Math.hypot(x2-x1, z2-z1);
+      if(len < 0.01) continue;
+      
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(len, WINDOW_HEIGHT, 0.04),
+        windowMat
+      );
+      
+      mesh.position.set((x1+x2)/2, WINDOW_SILL + WINDOW_HEIGHT/2, (z1+z2)/2);
+      mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      planGroup.add(mesh);
+    }
+  }
+  
+  console.log(`✅ Built ${planGroup.children.length} meshes`);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Build 3D Floor Plan from Legacy Format (DEPRECATED)
+══════════════════════════════════════════════════════════════════════════ */
+async function buildFloorPlanLegacy(fp){
+  // Calculate center and scale
+  let minX=Infinity, maxX=-Infinity, minZ=Infinity, maxZ=-Infinity;
+  
+  for(const wall of fp.walls||[]){
+    for(const pt of wall.outer||[]){
+      minX=Math.min(minX,pt[0]); maxX=Math.max(maxX,pt[0]);
+      minZ=Math.min(minZ,pt[1]); maxZ=Math.max(maxZ,pt[1]);
+    }
+  }
+  
+  const width = maxX - minX;
+  const depth = maxZ - minZ;
+  const scale = 15 / Math.max(width, depth); // Target size 15 units
+  const cx = (minX + maxX) / 2;
+  const cz = (minZ + maxZ) / 2;
+  
+  planCenter.set(0, EYE_HEIGHT, 0);
+  
+  console.log(`Scale: ${scale.toFixed(3)}, Center: (${cx.toFixed(1)}, ${cz.toFixed(1)})`);
+  
+  // Materials
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0xf5f0e8,
+    roughness: 0.9,
+    metalness: 0.0
+  });
+  
+  const doorMat = new THREE.MeshStandardMaterial({
+    color: 0x8b7355,
+    roughness: 0.7
+  });
+  
+  const windowMat = new THREE.MeshStandardMaterial({
+    color: 0xb8d4e8,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.6
+  });
+  
+  // Build walls
+  for(const wall of fp.walls||[]){
+    const outer = wall.outer || [];
+    if(outer.length < 2) continue;
+    
+    for(let i=0; i<outer.length; i++){
+      const p1 = outer[i];
+      const p2 = outer[(i+1) % outer.length];
+      
+      const x1 = (p1[0] - cx) * scale;
+      const z1 = -(p1[1] - cz) * scale;
+      const x2 = (p2[0] - cx) * scale;
+      const z2 = -(p2[1] - cz) * scale;
+      
+      const len = Math.hypot(x2-x1, z2-z1);
+      if(len < 0.01) continue;
+      
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(len, WALL_HEIGHT, 0.08),
+        wallMat
+      );
+      
+      mesh.position.set((x1+x2)/2, WALL_HEIGHT/2, (z1+z2)/2);
+      mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      planGroup.add(mesh);
+    }
+  }
+  
+  // Build doors
+  for(const door of fp.doors||[]){
+    const outer = door.outer || [];
+    if(outer.length < 2) continue;
+    
+    const p1 = outer[0];
+    const p2 = outer[1];
+    
+    const x1 = (p1[0] - cx) * scale;
+    const z1 = -(p1[1] - cz) * scale;
+    const x2 = (p2[0] - cx) * scale;
+    const z2 = -(p2[1] - cz) * scale;
+    
+    const len = Math.hypot(x2-x1, z2-z1);
+    if(len < 0.01) continue;
+    
+    const doorHeight = WALL_HEIGHT * 0.85;
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(len, doorHeight, 0.04),
+      doorMat
+    );
+    
+    mesh.position.set((x1+x2)/2, doorHeight/2, (z1+z2)/2);
+    mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+    mesh.castShadow = true;
+    planGroup.add(mesh);
+  }
+  
+  // Build windows
+  for(const window of fp.windows||[]){
+    const outer = window.outer || [];
+    if(outer.length < 2) continue;
+    
+    const p1 = outer[0];
+    const p2 = outer[1];
+    
+    const x1 = (p1[0] - cx) * scale;
+    const z1 = -(p1[1] - cz) * scale;
+    const x2 = (p2[0] - cx) * scale;
+    const z2 = -(p2[1] - cz) * scale;
+    
+    const len = Math.hypot(x2-x1, z2-z1);
+    if(len < 0.01) continue;
+    
+    const windowHeight = WALL_HEIGHT * 0.4;
+    const windowSill = WALL_HEIGHT * 0.35;
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(len, windowHeight, 0.02),
+      windowMat
+    );
+    
+    mesh.position.set((x1+x2)/2, windowSill + windowHeight/2, (z1+z2)/2);
+    mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+    mesh.castShadow = true;
+    planGroup.add(mesh);
+  }
+  
+  console.log(`✅ Built ${planGroup.children.length} floor plan objects`);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Movement & Controls
+══════════════════════════════════════════════════════════════════════════ */
+const keys={forward:false,back:false,left:false,right:false};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const D2R=Math.PI/180;
+const CHASE_DIST=3.2;
+const WALK_SPEED = 2.5;
+let facingYaw=0, yaw=0, pitch=0;
+const _dir=new THREE.Vector3(), _v=new THREE.Vector3();
+
+function bindMove(id,key){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const start=e=>{e.preventDefault();keys[key]=true;};
+  const stop=e=>{e.preventDefault();keys[key]=false;};
+  el.addEventListener('pointerdown',start);
+  ['pointerup','pointercancel','pointerleave'].forEach(n=>el.addEventListener(n,stop));
+}
+bindMove('forward','forward');
+bindMove('back','back');
+bindMove('left','left');
+bindMove('right','right');
+
+const keyMap={w:'forward',ArrowUp:'forward',s:'back',ArrowDown:'back',a:'left',ArrowLeft:'left',d:'right',ArrowRight:'right'};
+window.addEventListener('keydown',e=>{const k=keyMap[e.key];if(k)keys[k]=true;});
+window.addEventListener('keyup',e=>{const k=keyMap[e.key];if(k)keys[k]=false;});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+
+function move(dt){
+  const f=(keys.forward?1:0)-(keys.back?1:0);
+  const s=(keys.right?1:0)-(keys.left?1:0);
+  if(!f && !s) return;
+  
+  const sp=WALK_SPEED*dt/Math.hypot(f,s);
+  const dx=(-Math.sin(facingYaw)*f+Math.cos(facingYaw)*s)*sp;
+  const dz=(-Math.cos(facingYaw)*f-Math.sin(facingYaw)*s)*sp;
+  
+  rig.position.x=clamp(rig.position.x+dx,-90,90);
+  rig.position.z=clamp(rig.position.z+dz,-90,90);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Enter / Exit VR
+══════════════════════════════════════════════════════════════════════════ */
+let rigY=0, checkedHeight=false;
+
+arvrBtn.addEventListener('click',async()=>{
+  if(renderer.xr.isPresenting){
+    await renderer.xr.getSession()?.end();
+    return;
+  }
+  
+  if(!floorPlanLoaded){
+    statusEl.textContent = '❌ Floor plan not loaded yet';
+    return;
+  }
+  
+  const ok=await xrReady;
+  if(!ok){
+    statusEl.textContent='VR not available. Use Chrome on HTTPS/localhost.';
+    return;
+  }
+  
+  try{
+    const session=await navigator.xr.requestSession('immersive-vr',{
+      optionalFeatures:['local-floor','bounded-floor']
+    });
+    
+    session.addEventListener('selectstart',()=>{keys.forward=true;});
+    session.addEventListener('selectend',()=>{keys.forward=false;});
+    
+    checkedHeight=false;
+    rigY=0;
+    
+    await renderer.xr.setSession(session);
+    
+    console.log('✅ VR session started');
+    
+  }catch(err){
+    statusEl.textContent='Could not start VR: '+(err.message||err);
+    console.error('VR start error:', err);
+  }
+});
+
+// Touch fallback
+window.addEventListener('touchstart',()=>{if(renderer.xr.isPresenting)keys.forward=true;},{passive:true});
+window.addEventListener('touchend',()=>{if(renderer.xr.isPresenting)keys.forward=false;},{passive:true});
+window.addEventListener('touchcancel',()=>{if(renderer.xr.isPresenting)keys.forward=false;},{passive:true});
+
+renderer.xr.addEventListener('sessionstart',()=>{
+  document.body.classList.add('vr');
+  arvrBtn.textContent='Exit VR';
+  
+  // Position at center of floor plan
+  rig.position.set(planCenter.x, EYE_HEIGHT, planCenter.z);
+  camera.position.set(0,0,0);
+  camera.rotation.set(0,0,0);
+});
+
+renderer.xr.addEventListener('sessionend',()=>{
+  document.body.classList.remove('vr');
+  arvrBtn.textContent='Enter VR';
+  keys.forward=false;
+  camera.position.set(0,0,0);
+  camera.quaternion.identity();
+  rig.position.y=0;
+  statusEl.textContent='VR ended. Tap "Enter VR" to restart.';
+});
+
+recenterBtn.addEventListener('click',()=>{
+  yaw=0;
+  pitch=0;
+  rig.position.set(planCenter.x, 0, planCenter.z);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main Render Loop - EXACT PATTERN FROM WORKING VR FILE
+══════════════════════════════════════════════════════════════════════════ */
+const clock=new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const dt=Math.min(clock.getDelta(),.05);
+  
+  if(renderer.xr.isPresenting){
+    // VR MODE: First-person rendering
+    const xrCam=renderer.xr.getCamera();
+    xrCam.getWorldDirection(_dir);
+    if(Math.hypot(_dir.x,_dir.z)>0.05){
+      facingYaw=Math.atan2(-_dir.x,-_dir.z);
+    }
+    
+    // Check camera height
+    if(!checkedHeight){
+      xrCam.getWorldPosition(_v);
+      if(xrCam.cameras&&xrCam.cameras.length){
+        checkedHeight=true;
+        rigY=(_v.y-rig.position.y)<0.8?EYE_HEIGHT:0;
+      }
+    }
+    
+    move(dt);
+    rig.position.y=rigY;
+    
+    // CRITICAL: Render inside VR block
+    renderer.render(scene,camera);
+    return; // Exit here for VR
+  }
+  
+  // NORMAL MODE: Third-person view
+  move(dt);
+  rig.position.y=0;
+  
+  // Simple orbit camera
+  const angle = yaw;
+  const dist = CHASE_DIST;
+  camera.position.set(
+    rig.position.x + Math.sin(angle)*dist,
+    EYE_HEIGHT + 1,
+    rig.position.z + Math.cos(angle)*dist
+  );
+  camera.lookAt(rig.position.x, EYE_HEIGHT, rig.position.z);
+  
+  renderer.render(scene,camera);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Window Resize
+══════════════════════════════════════════════════════════════════════════ */
+function onResize(){
+  if(renderer.xr.isPresenting) return;
+  renderer.setSize(innerWidth,innerHeight,false);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',onResize);
+window.addEventListener('orientationchange',()=>setTimeout(onResize,300));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Initialize
+══════════════════════════════════════════════════════════════════════════ */
+loadFloorPlan().then(success=>{
+  if(success){
+    console.log('🎉 VR viewer ready!');
+  }else{
+    console.error('❌ Failed to initialize');
+  }
+});
+
+</script>
+</body>
+</html>

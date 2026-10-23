@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArchGen 3D - Phone Access</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .status {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #155724;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .url-box {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .url-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .url {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            word-break: break-all;
+            margin: 10px 0;
+            border: 2px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .url-text {
+            flex-grow: 1;
+            color: #764ba2;
+            font-weight: bold;
+        }
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        .qr-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+        .qr-section img {
+            max-width: 300px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .badge {
+            display: inline-block;
+            background: #ffd700;
+            color: #333;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 5px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .info h4 {
+            color: #1565C0;
+            margin-bottom: 10px;
+        }
+        .info ul {
+            margin-left: 20px;
+            color: #666;
+        }
+        .info li {
+            margin: 8px 0;
+        }
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #764ba2;
+        }
+        .text-center {
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .url {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .copy-btn {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ ArchGen 3D</h1>
+        <p class="subtitle">Floor Plan to 3D Converter with AI Recommendations</p>
+        
+        <div class="status">
+            ✅ All Services Running - Ready for Phone Access!
+        </div>
+
+        <div class="url-box">
+            <h3>📱 PUBLIC URL <span class="badge">USE THIS ON YOUR PHONE</span></h3>
+            <p style="color: #666; margin-bottom: 15px;">Works from anywhere with internet connection</p>
+            <div class="url">
+                <span class="url-text">https://vacate-exposable-avid.ngrok-free.dev</span>
+                <button class="copy-btn" onclick="copyUrl('https://vacate-exposable-avid.ngrok-free.dev')">📋 Copy</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <h4>🎯 Quick Start Guide</h4>
+            <ul>
+                <li>Open the public URL above on your phone's browser</li>
+                <li>Upload a floor plan image</li>
+                <li>Wait for the 3D model to generate</li>
+                <li>Click "Get AI Recommendations" for design suggestions</li>
+                <li>Click "Enter VR Walk Mode" for immersive viewing</li>
+            </ul>
+        </div>
+
+        <div class="url-box">
+            <h3>💻 LOCAL NETWORK URLS <span class="badge">SAME WIFI ONLY</span></h3>
+            <p style="color: #666; margin-bottom: 15px;">Use if on same WiFi network (10.141.113.231)</p>
+            
+            <div style="margin: 15px 0;">
+                <strong>ArchGen UI:</strong>
+                <div class="url">
+                    <span class="url-text">http://10.141.113.231:5173</span>
+                    <button class="copy-btn" onclick="copyUrl('http://10.141.113.231:5173')">📋 Copy</button>
+                </div>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <strong>Main Viewer:</strong>
+                <div class="url">
+                    <span class="url-text">http://10.141.113.231:8080</span>
+                    <button class="copy-btn" onclick="copyUrl('http://10.141.113.231:8080')">📋 Copy</button>
+                </div>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <strong>Recommendation UI:</strong>
+                <div class="url">
+                    <span class="url-text">http://10.141.113.231:5176</span>
+                    <button class="copy-btn" onclick="copyUrl('http://10.141.113.231:5176')">📋 Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info">
+            <h4>🎮 VR Mode Access</h4>
+            <ul>
+                <li><strong>Direct VR Link:</strong> Add <code>/viewer/vr-walk-mode.html</code> to the public URL</li>
+                <li>Or click "Enter VR Walk Mode" button after loading a model</li>
+                <li>VR features: Eye-level view, touch controls, collision detection</li>
+            </ul>
+        </div>
+
+        <div class="text-center" style="margin-top: 30px;">
+            <a href="http://localhost:4040" target="_blank" class="btn">🌐 Open Ngrok Dashboard</a>
+            <a href="http://localhost:8080" target="_blank" class="btn">🖥️ Open Main Viewer</a>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fff3cd; border-radius: 10px; border-left: 5px solid #ffc107;">
+            <h4 style="color: #856404; margin-bottom: 10px;">⚠️ Important Notes</h4>
+            <ul style="color: #856404; margin-left: 20px;">
+                <li>Keep all terminal windows open to maintain services</li>
+                <li>Free ngrok tunnel may timeout after 2 hours</li>
+                <li>Public URL works from anywhere, local URLs need same WiFi</li>
+                <li>For best VR experience, use HTTPS (ngrok provides this)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ URL copied to clipboard!\n\n' + url);
+            }).catch(err => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = url;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('✅ URL copied to clipboard!\n\n' + url);
+            });
+        }
+    </script>
+</body>
+</html>

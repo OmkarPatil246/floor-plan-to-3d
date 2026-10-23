@@ -372,8 +372,80 @@ def server_info():
         "local_ip": local_ip,
         "port": api_config["PORT"],
         "protocol": "http",  # Change to "https" if SSL is enabled
-        "vr_url": f"http://{local_ip}:{api_config['PORT']}/?vr=auto"
+        "vr_url": f"http://{local_ip}:{api_config['PORT']}/vr-viewer.html?vr=auto"
     })
+
+
+# In-memory storage for VR sessions (temporary storage)
+# In production, use Redis or a database
+_vr_sessions = {}
+
+@application.route("/api/vr-session", methods=["POST"])
+def create_vr_session():
+    """Create a VR session and store floor plan data temporarily."""
+    import uuid
+    import time
+    
+    try:
+        data = request.get_json()
+        if not data or 'floorplan_data' not in data:
+            return jsonify({"error": "No floorplan_data provided"}), 400
+        
+        floorplan_data = data['floorplan_data']
+        logger.info(f"📦 Creating VR session with data keys: {list(floorplan_data.keys() if isinstance(floorplan_data, dict) else [])}")
+        
+        # Check if data has the expected structure
+        if isinstance(floorplan_data, dict):
+            fp = floorplan_data.get('floorPlan', floorplan_data)
+            walls_count = len(fp.get('walls', [])) if isinstance(fp, dict) else 0
+            rooms_count = len(fp.get('rooms', [])) if isinstance(fp, dict) else 0
+            logger.info(f"📊 Floor plan contains: {rooms_count} rooms, {walls_count} walls")
+        
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())[:8]  # Short ID for URL
+        
+        # Store with timestamp (expire after 1 hour)
+        _vr_sessions[session_id] = {
+            'data': data['floorplan_data'],
+            'created_at': time.time()
+        }
+        
+        # Clean up old sessions (older than 1 hour)
+        current_time = time.time()
+        expired_sessions = [sid for sid, session in _vr_sessions.items() 
+                          if current_time - session['created_at'] > 3600]
+        for sid in expired_sessions:
+            del _vr_sessions[sid]
+        
+        logger.info(f"Created VR session: {session_id}")
+        return jsonify({
+            "ok": True,
+            "session_id": session_id
+        })
+    
+    except Exception as e:
+        logger.error(f"Error creating VR session: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@application.route("/api/vr-session/<session_id>", methods=["GET"])
+def get_vr_session(session_id):
+    """Retrieve floor plan data for a VR session."""
+    try:
+        if session_id not in _vr_sessions:
+            return jsonify({"error": "Session not found or expired"}), 404
+        
+        session = _vr_sessions[session_id]
+        logger.info(f"Retrieved VR session: {session_id}")
+        
+        return jsonify({
+            "ok": True,
+            "floorplan_data": session['data']
+        })
+    
+    except Exception as e:
+        logger.error(f"Error retrieving VR session: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @application.route("/extract-image", methods=["POST"])
@@ -464,6 +536,11 @@ def generate_recommendation_input():
         
         structured_doc = generate_structured_document(detection_result)
         
+        # Add the input image to the structured document if available
+        if 'input_image_b64' in detection_result:
+            structured_doc['input_image_b64'] = detection_result['input_image_b64']
+            logger.info("Added input image to structured document")
+        
         # Log the output
         if 'floorPlan' in structured_doc and 'rooms' in structured_doc['floorPlan']:
             rooms = structured_doc['floorPlan']['rooms']
@@ -475,8 +552,10 @@ def generate_recommendation_input():
         # Save to output folder for debugging
         import json
         output_path = PROJECT_ROOT / "outputs" / "json" / "recommendation_input.json"
+        # Don't save the base64 image to the JSON file (too large)
+        structured_doc_copy = {k: v for k, v in structured_doc.items() if k != 'input_image_b64'}
         with open(output_path, 'w') as f:
-            json.dump(structured_doc, f, indent=2)
+            json.dump(structured_doc_copy, f, indent=2)
         
         logger.info(f"Saved recommendation input to: {output_path}")
         logger.info("Successfully generated structured document for recommendation system")
